@@ -38,7 +38,7 @@ The Tip Jar is a self-hosted web application that enables groups of friends to m
 - **Session-based authentication** with secure cookies
 
 ### Frontend & Templates
-- **html/template** - Go standard templating
+- **templ** - Type-safe HTML templating language that generates Go code
 - **Embedded static assets** using Go embed
 - **Tailwind CSS** - Utility-first CSS framework
 - **Alpine.js** - Minimal JavaScript framework for interactivity
@@ -69,7 +69,7 @@ tipjar/
 │   ├── handlers/        # HTTP handlers and middleware
 │   ├── models/          # Data models and business logic
 │   ├── services/        # Business logic services
-│   └── templates/       # HTML templates
+│   └── templates/       # Templ templates (.templ files)
 ├── migrations/          # Database migration files
 ├── static/             # CSS, JS, images (embedded)
 ├── uploads/            # File upload directory
@@ -113,11 +113,14 @@ The database will support the core entities needed for tip jar functionality:
 2. Install PostgreSQL
 3. Install Air for live reload: `go install github.com/cosmtrek/air@latest`
 4. Install migrate CLI: `go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest`
-5. Run migrations: `migrate -path migrations -database $DATABASE_URL up`
-6. Start development server: `air`
+5. Install templ: `go install github.com/a-h/templ/cmd/templ@latest`
+6. Run migrations: `migrate -path migrations -database $DATABASE_URL up`
+7. Generate templ files: `templ generate`
+8. Start development server: `air`
 
 ### Code Generation
 - Use `sqlc generate` to generate type-safe database code
+- Use `templ generate` to generate Go code from templ templates
 - Use `go generate` for embedding static assets
 
 ### Testing Strategy
