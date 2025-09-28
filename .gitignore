@@ -19,14 +19,20 @@ profile.cov
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+*templ.go
 
 # Go workspace file
 go.work
 go.work.sum
+go.sum
 
 # env file
 .env
 
 # Editor/IDE
 # .idea/
-# .vscode/
+.vscode/
+
+*.log
+*debug_bin*
+main
