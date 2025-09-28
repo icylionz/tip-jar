@@ -53,9 +53,11 @@ func main() {
 	// Initialize auth
 	authService := auth.NewService(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.SessionSecret)
 
-	// Initialize handlers
+	// Initialize handlers (handles static files and all routes)
 	h := handlers.New(db, authService, cfg)
 	h.RegisterRoutes(e)
+
+	slog.Info("Server starting", "port", cfg.Port)
 
 	// Start server
 	go func() {

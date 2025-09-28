@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 
+	"tipjar"
 	"tipjar/internal/auth"
 	"tipjar/internal/config"
 	"tipjar/internal/database"
@@ -36,9 +38,8 @@ func New(db *database.DB, authService *auth.Service, cfg *config.Config) *Handle
 }
 
 func (h *Handlers) RegisterRoutes(e *echo.Echo) {
-	// Static files
-	e.Static("/static", "static")
-	e.Static("/uploads", h.cfg.UploadsDir)
+	// Setup static files
+	h.setupStaticFiles(e)
 
 	// Public routes
 	e.GET("/", h.handleHome)
@@ -52,9 +53,11 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	protected.Use(h.requireAuth)
 	protected.GET("/dashboard", h.handleDashboard)
 	protected.GET("/jars", h.handleListJars)
+	protected.GET("/jars/create", h.handleCreateJarForm)
 	protected.POST("/jars", h.handleCreateJar)
+	protected.GET("/jars/join", h.handleJoinJarForm)
+	protected.POST("/jars/join", h.handleJoinJar)
 	protected.GET("/jars/:id", h.handleViewJar)
-	protected.POST("/jars/:id/join", h.handleJoinJar)
 	protected.POST("/jars/:id/offenses", h.handleReportOffense)
 	protected.POST("/offenses/:id/pay", h.handlePayOffense)
 
@@ -63,6 +66,20 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	api.Use(h.requireAuth)
 	api.GET("/user", h.handleGetUser)
 	api.GET("/jars", h.handleAPIListJars)
+}
+
+func (h *Handlers) setupStaticFiles(e *echo.Echo) {
+	// Serve embedded static files
+	staticFS, err := fs.Sub(tipjar.StaticFiles, "static")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create static filesystem: %v", err))
+	}
+
+	// Setup static file handler
+	e.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.FS(staticFS)))))
+
+	// Serve uploads directory from filesystem (not embedded)
+	e.Static("/uploads", h.cfg.UploadsDir)
 }
 
 func (h *Handlers) handleHome(c echo.Context) error {
@@ -212,6 +229,14 @@ func (h *Handlers) handleDashboard(c echo.Context) error {
 	return h.renderTemplate(c, templates.Dashboard(user, jars))
 }
 
+func (h *Handlers) handleCreateJarForm(c echo.Context) error {
+	return echo.NewHTTPError(http.StatusNotImplemented, "Not ready yet")
+}
+
+func (h *Handlers) handleJoinJarForm(c echo.Context) error {
+	return echo.NewHTTPError(http.StatusNotImplemented, "Not ready yet")
+}
+
 // Placeholder handlers - to be implemented in future iterations
 func (h *Handlers) handleListJars(c echo.Context) error {
 	return c.String(http.StatusOK, "List jars - not implemented yet")
@@ -221,12 +246,12 @@ func (h *Handlers) handleCreateJar(c echo.Context) error {
 	return c.String(http.StatusOK, "Create jar - not implemented yet")
 }
 
-func (h *Handlers) handleViewJar(c echo.Context) error {
-	return c.String(http.StatusOK, "View jar - not implemented yet")
-}
-
 func (h *Handlers) handleJoinJar(c echo.Context) error {
 	return c.String(http.StatusOK, "Join jar - not implemented yet")
+}
+
+func (h *Handlers) handleViewJar(c echo.Context) error {
+	return c.String(http.StatusOK, "View jar - not implemented yet")
 }
 
 func (h *Handlers) handleReportOffense(c echo.Context) error {

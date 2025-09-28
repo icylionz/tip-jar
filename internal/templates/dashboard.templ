@@ -5,105 +5,94 @@ import "fmt"
 
 templ Dashboard(user *models.User, jars []*models.TipJar) {
 	@Base("Dashboard", user) {
-		<div class="max-w-7xl mx-auto">
-			<!-- Welcome Header -->
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-				<div class="flex items-center justify-between">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+			<!-- Header -->
+			<div class="mb-6 sm:mb-8">
+				<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
 					<div>
-						<h1 class="text-2xl font-bold text-gray-900">Welcome back, { user.Name }!</h1>
-						<p class="text-gray-600 mt-1">Manage your tip jars and track offenses</p>
+						<h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Your Jars</h1>
+						<p class="text-gray-600 mt-1 text-sm sm:text-base">Manage your tip jars and track offenses</p>
 					</div>
-					<div class="flex items-center space-x-4">
-						if user.Avatar != nil {
-							<img src={ *user.Avatar } alt="Avatar" class="w-12 h-12 rounded-full">
-						} else {
-							<div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-								<span class="text-white font-bold text-lg">
-									{ string([]rune(user.Name)[0]) }
-								</span>
-							</div>
-						}
-					</div>
-				</div>
-			</div>
-
-			<!-- Quick Actions -->
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-				<a href="/jars/create" class="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-lg shadow-sm transition-colors">
-					<div class="flex items-center">
-						<svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<a href="/jars/create" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base w-full sm:w-auto">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
 						</svg>
-						<div>
-							<h3 class="text-lg font-semibold">Create Tip Jar</h3>
-							<p class="text-blue-100 text-sm">Start a new jar with friends</p>
-						</div>
-					</div>
-				</a>
-				
-				<a href="/jars/join" class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-lg shadow-sm transition-colors">
-					<div class="flex items-center">
-						<svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-						</svg>
-						<div>
-							<h3 class="text-lg font-semibold">Join Tip Jar</h3>
-							<p class="text-green-100 text-sm">Enter an invite code</p>
-						</div>
-					</div>
-				</a>
-				
-				<a href="/profile" class="bg-gray-600 hover:bg-gray-700 text-white p-6 rounded-lg shadow-sm transition-colors">
-					<div class="flex items-center">
-						<svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-						</svg>
-						<div>
-							<h3 class="text-lg font-semibold">My Profile</h3>
-							<p class="text-gray-100 text-sm">View and edit profile</p>
-						</div>
-					</div>
-				</a>
+						New Jar
+					</a>
+				</div>
 			</div>
 
-			<!-- My Tip Jars -->
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200">
-				<div class="px-6 py-4 border-b border-gray-200">
-					<h2 class="text-lg font-semibold text-gray-900">My Tip Jars</h2>
-				</div>
-				<div class="p-6">
-					if len(jars) == 0 {
-						<div class="text-center py-8">
-							<svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+			if len(jars) == 0 {
+				<!-- Empty State -->
+				<div class="text-center py-12 sm:py-16 px-4">
+					<div class="w-16 h-16 sm:w-24 sm:h-24 bg-gray-100 rounded-2xl mx-auto mb-4 sm:mb-6 flex items-center justify-center">
+						<svg class="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+						</svg>
+					</div>
+					<h3 class="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No tip jars yet</h3>
+					<p class="text-gray-600 mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">Create your first tip jar or join an existing one to get started tracking offenses with your friends.</p>
+					<div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+						<a href="/jars/create" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base">
+							<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
 							</svg>
-							<h3 class="text-lg font-medium text-gray-900 mb-2">No tip jars yet</h3>
-							<p class="text-gray-600 mb-4">Create your first tip jar or join an existing one to get started.</p>
-							<div class="space-x-4">
-								<a href="/jars/create" class="btn btn-primary">Create Tip Jar</a>
-								<a href="/jars/join" class="btn btn-secondary">Join Tip Jar</a>
-							</div>
-						</div>
-					} else {
-						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-							for _, jar := range jars {
-								<div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-									<h3 class="font-semibold text-gray-900 mb-2">{ jar.Name }</h3>
-									if jar.Description != nil {
-										<p class="text-gray-600 text-sm mb-3">{ *jar.Description }</p>
-									}
-									<div class="flex items-center justify-between">
-										<span class="text-xs text-gray-500">Code: { jar.InviteCode }</span>
-										<a href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) } class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-											View →
-										</a>
+							Create Tip Jar
+						</a>
+						<a href="/jars/join" class="inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm sm:text-base">
+							<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+							</svg>
+							Join Tip Jar
+						</a>
+					</div>
+				</div>
+			} else {
+				<!-- Jars Grid -->
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+					for _, jar := range jars {
+						<div class="group">
+							<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200">
+								<!-- Jar Header with gradient background -->
+								<div class="h-24 sm:h-32 bg-gradient-to-br from-blue-500 to-blue-600 relative">
+									<div class="absolute inset-0 bg-black/10"></div>
+									<div class="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+										<h3 class="text-white font-semibold text-base sm:text-lg truncate">{ jar.Name }</h3>
 									</div>
 								</div>
-							}
+								
+								<!-- Jar Content -->
+								<div class="p-3 sm:p-4">
+									if jar.Description != nil {
+										<p class="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">{ *jar.Description }</p>
+									} else {
+										<p class="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4 italic">No description</p>
+									}
+									
+									<!-- Jar Stats -->
+									<div class="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
+										<div class="flex items-center">
+											<svg class="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+											</svg>
+											<span class="text-xs sm:text-sm">12 members</span>
+										</div>
+										<div class="text-xs bg-gray-100 px-2 py-1 rounded">
+											{ jar.InviteCode }
+										</div>
+									</div>
+									
+									<!-- View Jar Button -->
+									<a href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) } 
+									   class="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-2 px-4 rounded-xl transition-colors text-center block text-sm sm:text-base">
+										View Jar
+									</a>
+								</div>
+							</div>
 						</div>
 					}
 				</div>
-			</div>
+			}
 		</div>
 	}
 }
