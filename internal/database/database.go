@@ -4,6 +4,8 @@ import (
 	"context"
 	"embed"
 
+	"tipjar/internal/database/sqlc"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -15,6 +17,7 @@ var migrationFS embed.FS
 
 type DB struct {
 	*pgxpool.Pool
+	*sqlc.Queries
 }
 
 func New(databaseURL string) (*DB, error) {
@@ -23,7 +26,12 @@ func New(databaseURL string) (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{Pool: pool}, nil
+	queries := sqlc.New(pool)
+
+	return &DB{
+		Pool:    pool,
+		Queries: queries,
+	}, nil
 }
 
 func (db *DB) Close() {

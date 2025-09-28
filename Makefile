@@ -22,23 +22,23 @@ test:
 
 # Database migrations
 migration-up:
-	migrate -path migrations -database "$(DATABASE_URL)" up
+	migrate -path internal/database/migrations -database "$(DATABASE_URL)" up
 
 migration-down:
-	migrate -path migrations -database "$(DATABASE_URL)" down
+	migrate -path internal/database/migrations -database "$(DATABASE_URL)" down
 
 migration-create:
-	migrate create -ext sql -dir migrations -seq $(name)
+	migrate create -ext sql -dir internal/database/migrations -seq $(name)
 
 # Docker commands
 docker-build:
 	docker build -f docker/Dockerfile -t tipjar .
 
 docker-run:
-	docker-compose up
+	docker-compose up -d
 
 docker-dev:
-	docker-compose up postgres
+	docker-compose up postgres -d
 
 # Generate templ files
 templ:
@@ -50,7 +50,7 @@ sqlc:
 
 # Install development dependencies
 deps:
-	go install github.com/cosmtrek/air@latest
+	go install github.com/air-verse/air@latest
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/a-h/templ/cmd/templ@latest
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
@@ -61,7 +61,7 @@ setup: deps
 	echo "Please update .env with your configuration"
 	echo "Run 'make docker-dev' to start PostgreSQL"
 	echo "Run 'make migration-up' to run migrations"
-	echo "Run 'make templ' to generate templates"
+	echo "Run 'make generate' to generate code"
 	echo "Run 'make dev' to start development server"
 
 # Production build with optimizations
@@ -69,7 +69,7 @@ build-prod:
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/tipjar ./cmd/server
 
 # Generate all code
-generate: templ sqlc
+generate: sqlc templ
 
 # Lint code
 lint:
