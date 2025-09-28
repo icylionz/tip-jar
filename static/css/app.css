@@ -1,0 +1,128 @@
+/* Custom application styles */
+/* Tailwind CSS will be loaded from CDN in templates */
+
+/* Custom component styles that extend Tailwind */
+.btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200 inline-flex items-center justify-center;
+}
+
+.btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+.btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.btn-secondary {
+    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+}
+
+.btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+}
+
+.btn-success {
+    @apply bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+}
+
+.card {
+    @apply bg-white rounded-lg shadow-md border border-gray-200;
+}
+
+.card-header {
+    @apply px-6 py-4 border-b border-gray-200;
+}
+
+.card-body {
+    @apply p-6;
+}
+
+.form-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+}
+
+.form-input:invalid {
+    @apply border-red-300 focus:ring-red-500 focus:border-red-500;
+}
+
+.form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.form-error {
+    @apply text-sm text-red-600 mt-1;
+}
+
+.badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-pending {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-paid {
+    @apply bg-green-100 text-green-800;
+}
+
+.badge-disputed {
+    @apply bg-red-100 text-red-800;
+}
+
+.badge-forgiven {
+    @apply bg-gray-100 text-gray-800;
+}
+
+/* Notification styles */
+.notification {
+    @apply fixed top-4 right-4 max-w-sm p-4 rounded-lg shadow-lg z-50 transition-all transform;
+}
+
+.notification-info {
+    @apply bg-blue-50 border border-blue-200 text-blue-800;
+}
+
+.notification-success {
+    @apply bg-green-50 border border-green-200 text-green-800;
+}
+
+.notification-warning {
+    @apply bg-yellow-50 border border-yellow-200 text-yellow-800;
+}
+
+.notification-error {
+    @apply bg-red-50 border border-red-200 text-red-800;
+}
+
+/* Loading states */
+.loading {
+    @apply animate-pulse;
+}
+
+.spinner {
+    @apply animate-spin h-5 w-5 border-2 border-gray-300 border-t-blue-600 rounded-full;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f9fafb;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f9fafb;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
