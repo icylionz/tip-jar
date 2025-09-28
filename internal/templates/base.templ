@@ -4,7 +4,7 @@ import "tipjar/internal/models"
 
 templ Base(title string, user *models.User) {
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,7 +48,7 @@ templ Base(title string, user *models.User) {
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 h-full flex flex-col">
     <!-- Notification container -->
     <div x-data class="fixed top-4 right-4 space-y-2 z-50">
         <template x-for="notification in $store.notifications.items" :key="notification.id">
@@ -92,23 +92,23 @@ templ Base(title string, user *models.User) {
         @Navigation(user)
     }
 
-    <!-- Main content -->
-    <main>
+    <!-- Main content - flex-grow to push footer down -->
+    <main class="flex-grow">
         { children... }
     </main>
 
-    <!-- Footer -->
+    <!-- Footer - always at bottom -->
     <footer class="bg-white border-t border-gray-200 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-                <p class="text-gray-600 text-sm text-center sm:text-left">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <div class="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+                <p class="text-gray-600 text-xs sm:text-sm text-center sm:text-left">
                     &copy; 2025 Tip Jar. Self-hosted with 
                     <span class="text-red-500">❤️</span>
                 </p>
-                <div class="flex space-x-4">
-                    <a href="/about" class="text-gray-600 hover:text-gray-800 text-sm">About</a>
-                    <a href="/privacy" class="text-gray-600 hover:text-gray-800 text-sm">Privacy</a>
-                    <a href="/help" class="text-gray-600 hover:text-gray-800 text-sm">Help</a>
+                <div class="flex space-x-3 sm:space-x-4">
+                    <a href="/about" class="text-gray-600 hover:text-gray-800 text-xs sm:text-sm transition-colors">About</a>
+                    <a href="/privacy" class="text-gray-600 hover:text-gray-800 text-xs sm:text-sm transition-colors">Privacy</a>
+                    <a href="/help" class="text-gray-600 hover:text-gray-800 text-xs sm:text-sm transition-colors">Help</a>
                 </div>
             </div>
         </div>
@@ -132,18 +132,18 @@ templ Navigation(user *models.User) {
             </div>
 
             <!-- Desktop Navigation Links -->
-            <div class="hidden md:flex space-x-8">
-                <a href="/dashboard" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">Dashboard</a>
-                <a href="/jars" class="text-blue-600 hover:text-blue-700 px-3 py-2 text-sm font-medium">Jars</a>
-                <a href="/members" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">Members</a>
-                <a href="/settings" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">Settings</a>
+            <div class="hidden md:flex space-x-6 lg:space-x-8">
+                <a href="/dashboard" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">Dashboard</a>
+                <a href="/jars" class="text-blue-600 hover:text-blue-700 px-3 py-2 text-sm font-medium transition-colors">Jars</a>
+                <a href="/members" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">Members</a>
+                <a href="/settings" class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors">Settings</a>
             </div>
 
             <!-- Right side: Notification + User + Mobile Menu Button -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3 sm:space-x-4">
                 <!-- Notification Bell (hidden on mobile) -->
-                <button class="text-gray-600 hover:text-gray-900 hidden sm:block">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button class="text-gray-600 hover:text-gray-900 hidden sm:block p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM15 17H9a4 4 0 01-4-4V9a4 4 0 014-4h2.5"></path>
                     </svg>
                 </button>
@@ -151,7 +151,7 @@ templ Navigation(user *models.User) {
                 <!-- User Profile -->
                 <div class="relative" x-data="{ open: false }">
                     <button @click="open = !open" 
-                            class="flex items-center space-x-2">
+                            class="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 transition-colors">
                         if user.Avatar != nil {
                             <img src={ *user.Avatar } alt="Avatar" class="w-8 h-8 rounded-full">
                         } else {
@@ -171,17 +171,17 @@ templ Navigation(user *models.User) {
                          x-transition:leave="transition ease-in duration-75"
                          x-transition:leave-start="transform opacity-100 scale-100"
                          x-transition:leave-end="transform opacity-0 scale-95"
-                         class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-200 z-50"
+                         class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 border border-gray-200 z-50"
                          style="display: none;">
-                        <div class="px-4 py-2 border-b border-gray-100">
+                        <div class="px-4 py-3 border-b border-gray-100">
                             <p class="text-sm font-medium text-gray-900 truncate">{ user.Name }</p>
-                            <p class="text-sm text-gray-500 truncate">{ user.Email }</p>
+                            <p class="text-xs text-gray-500 truncate">{ user.Email }</p>
                         </div>
-                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 md:hidden">Settings</a>
+                        <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Profile</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 md:hidden transition-colors">Settings</a>
                         <hr class="my-1">
                         <form action="/logout" method="POST" class="block">
-                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                                 Sign Out
                             </button>
                         </form>
@@ -191,7 +191,7 @@ templ Navigation(user *models.User) {
                 <!-- Mobile menu button -->
                 <div class="md:hidden">
                     <button @click="mobileMenuOpen = !mobileMenuOpen" 
-                            class="text-gray-600 hover:text-gray-900 p-2">
+                            class="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                             <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -209,13 +209,13 @@ templ Navigation(user *models.User) {
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
-             class="md:hidden border-t border-gray-200"
+             class="md:hidden border-t border-gray-200 pb-3"
              style="display: none;">
-            <div class="px-2 pt-2 pb-3 space-y-1">
-                <a href="/dashboard" class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Dashboard</a>
-                <a href="/jars" class="block px-3 py-2 text-base font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md">Jars</a>
-                <a href="/members" class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Members</a>
-                <a href="/settings" class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Settings</a>
+            <div class="px-2 pt-2 space-y-1">
+                <a href="/dashboard" class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">Dashboard</a>
+                <a href="/jars" class="block px-3 py-2 text-base font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">Jars</a>
+                <a href="/members" class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">Members</a>
+                <a href="/settings" class="block px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">Settings</a>
             </div>
         </div>
     </div>
