@@ -31,6 +31,15 @@ type JarMembership struct {
 	Role     string    `json:"role" db:"role"` // 'admin' or 'member'
 	JoinedAt time.Time `json:"joined_at" db:"joined_at"`
 }
+type JarMemberInfo struct {
+	ID       int       `json:"id"`
+	UserID   int       `json:"user_id"`
+	Name     string    `json:"name"`
+	Email    string    `json:"email"`
+	Avatar   string    `json:"avatar"`
+	Role     string    `json:"role"`
+	JoinedAt time.Time `json:"joined_at"`
+}
 
 type OffenseType struct {
 	ID          int       `json:"id" db:"id"`
@@ -69,4 +78,23 @@ type Payment struct {
 	VerifiedBy *int      `json:"verified_by" db:"verified_by"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+}
+type JarActivity struct {
+	ID              int       `json:"id"`
+	OffenseTypeName string    `json:"offense_type_name"`
+	ReporterName    string    `json:"reporter_name"`
+	ReporterAvatar  *string   `json:"reporter_avatar"`
+	OffenderName    string    `json:"offender_name"`
+	OffenderAvatar  *string   `json:"offender_avatar"`
+	Notes           *string   `json:"notes"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type MemberBalance struct {
+	UserID         int     `json:"user_id"`
+	Name           string  `json:"name"`
+	Avatar         *string `json:"avatar"`
+	TotalOwed      float64 `json:"total_owed"`
+	PendingCount   int     `json:"pending_count"`
 }

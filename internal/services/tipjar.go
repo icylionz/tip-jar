@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"strconv"
 
 	"tipjar/internal/database"
 	"tipjar/internal/database/sqlc"
@@ -183,4 +184,121 @@ func (s *TipJarService) sqlcTipJarToModel(jar sqlc.TipJar) *models.TipJar {
 		CreatedAt:   jar.CreatedAt.Time,
 		UpdatedAt:   jar.UpdatedAt.Time,
 	}
+}
+func (s *TipJarService) GetJarMembers(ctx context.Context, jarID int) ([]models.JarMemberInfo, error) {
+	members, err := s.db.ListJarMembers(ctx, int32(jarID))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.JarMemberInfo, len(members))
+	for i, member := range members {
+		avatar := ""
+		if member.Avatar.Valid {
+			avatar = member.Avatar.String
+		}
+
+		result[i] = models.JarMemberInfo{
+			ID:       int(member.ID),
+			UserID:   int(member.UserID),
+			Name:     member.Name,
+			Email:    member.Email,
+			Avatar:   avatar,
+			Role:     member.Role,
+			JoinedAt: member.JoinedAt.Time,
+		}
+	}
+
+	return result, nil
+}
+func (s *TipJarService) GetJarActivity(ctx context.Context, jarID int, limit int) ([]models.JarActivity, error) {
+	offenses, err := s.db.ListOffensesForJar(ctx, sqlc.ListOffensesForJarParams{
+		JarID:  int32(jarID),
+		Limit:  int32(limit),
+		Offset: 0,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	activities := make([]models.JarActivity, len(offenses))
+	for i, offense := range offenses {
+		var notes *string
+		if offense.Notes.Valid {
+			notes = &offense.Notes.String
+		}
+
+		activities[i] = models.JarActivity{
+			ID:              int(offense.ID),
+			OffenseTypeName: offense.OffenseTypeName,
+			ReporterName:    offense.ReporterName,
+			OffenderName:    offense.OffenderName,
+			Notes:           notes,
+			Status:          offense.Status,
+			CreatedAt:       offense.CreatedAt.Time,
+		}
+	}
+
+	return activities, nil
+}
+
+func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]models.MemberBalance, error) {
+	// Get all jar members
+	members, err := s.db.ListJarMembers(ctx, int32(jarID))
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]models.MemberBalance, len(members))
+	
+	for i, member := range members {
+		// Get user's balance in this jar
+		balance, err := s.db.GetUserBalanceInJar(ctx, sqlc.GetUserBalanceInJarParams{
+			JarID:      int32(jarID),
+			OffenderID: member.UserID,
+		})
+		if err != nil {
+			// If error, default to 0
+			balance = 0
+		}
+
+		// Convert balance to float64
+		var totalOwed float64
+		if balance != nil {
+			if balanceStr, ok := balance.(string); ok {
+				if parsed, err := strconv.ParseFloat(balanceStr, 64); err == nil {
+					totalOwed = parsed
+				}
+			} else if balanceFloat, ok := balance.(float64); ok {
+				totalOwed = balanceFloat
+			}
+		}
+
+		// Get pending offense count
+		pendingOffenses, err := s.db.ListPendingOffensesForUser(ctx, member.UserID)
+		pendingCount := 0
+		if err == nil {
+			// Count only offenses for this jar
+			for _, offense := range pendingOffenses {
+				if offense.JarID == int32(jarID) {
+					pendingCount++
+				}
+			}
+		}
+
+		var avatar *string
+		if member.Avatar.Valid {
+			avatar = &member.Avatar.String
+		}
+
+		balances[i] = models.MemberBalance{
+			UserID:       int(member.UserID),
+			Name:         member.Name,
+			Avatar:       avatar,
+			TotalOwed:    totalOwed,
+			PendingCount: pendingCount,
+		}
+	}
+
+	return balances, nil
 }

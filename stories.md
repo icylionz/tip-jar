@@ -6,10 +6,10 @@
 
 - [x] **As a** new user, **I want to** sign up using OAuth (Google/GitHub/Discord), **so that** I can quickly create an account without another password
 - [x] **As a** returning user, **I want to** log in with my OAuth provider, **so that** I can access my tip jars
-- [ ] **As a** user, **I want to** create a new tip jar with a name and description, **so that** I can start tracking offenses with my group
-- [ ] **As a** user, **I want to** join an existing tip jar using an invite code, **so that** I can participate with my friends
-- [ ] **As a** jar admin, **I want to** generate and share an invite code, **so that** others can join my tip jar
-- [ ] **As a** user, **I want to** see a list of all tip jars I'm a member of, **so that** I can switch between different groups
+- [x] **As a** user, **I want to** create a new tip jar with a name and description, **so that** I can start tracking offenses with my group
+- [x] **As a** user, **I want to** join an existing tip jar using an invite code, **so that** I can participate with my friends
+- [x] **As a** jar admin, **I want to** generate and share an invite code, **so that** others can join my tip jar
+- [x] **As a** user, **I want to** see a list of all tip jars I'm a member of, **so that** I can switch between different groups
 - [ ] **As a** user, **I want to** report an offense committed by another member, **so that** it's tracked in the ledger
 - [ ] **As an** offender, **I want to** mark a monetary offense as paid, **so that** my debt is cleared
 - [ ] **As a** user, **I want to** see all pending offenses in a tip jar, **so that** I know what's currently owed

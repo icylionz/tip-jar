@@ -1,0 +1,295 @@
+package templates
+
+import "tipjar/internal/models"
+import "fmt"
+
+templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberInfo, activities []models.JarActivity, balances []models.MemberBalance, isAdmin bool) {
+	@Base(jar.Name, user) {
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+			<!-- Header - keep existing header code -->
+			<div class="mb-6 sm:mb-8">
+				<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+					<div>
+						<div class="flex items-center space-x-3">
+							<a href="/dashboard" class="text-gray-500 hover:text-gray-700">
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+								</svg>
+							</a>
+							<h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{ jar.Name }</h1>
+						</div>
+						if jar.Description != nil {
+							<p class="text-gray-600 mt-1 text-sm sm:text-base">{ *jar.Description }</p>
+						}
+						<div class="flex items-center space-x-4 mt-2">
+							<span class="text-sm text-gray-500">
+								<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+								</svg>
+								{ fmt.Sprintf("%d members", len(members)) }
+							</span>
+							<span class="text-sm bg-gray-100 px-2 py-1 rounded font-mono">{ jar.InviteCode }</span>
+							<button onclick="utils.copyToClipboard('{ jar.InviteCode }')" class="text-blue-600 hover:text-blue-700 text-sm">
+								Copy Code
+							</button>
+						</div>
+					</div>
+					<div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+						<a href={ templ.URL(fmt.Sprintf("/jars/%d/report", jar.ID)) } class="btn btn-primary">
+							<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+							</svg>
+							Report Offense
+						</a>
+						if isAdmin {
+							<a href={ templ.URL(fmt.Sprintf("/jars/%d/settings", jar.ID)) } class="btn btn-secondary">
+								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+								</svg>
+								Settings
+							</a>
+						}
+					</div>
+				</div>
+			</div>
+
+			<!-- Tab Navigation - keep existing -->
+			<div class="mb-6" x-data="{ activeTab: 'activity' }">
+				<div class="border-b border-gray-200">
+					<nav class="-mb-px flex space-x-8">
+						<button @click="activeTab = 'activity'" 
+						        :class="activeTab === 'activity' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+						        class="py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+							Activity
+						</button>
+						<button @click="activeTab = 'members'" 
+						        :class="activeTab === 'members' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+						        class="py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+							Members
+						</button>
+						<button @click="activeTab = 'balances'" 
+						        :class="activeTab === 'balances' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+						        class="py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+							Balances
+						</button>
+					</nav>
+				</div>
+
+				<!-- Tab Content -->
+				<div class="mt-6">
+					<!-- Activity Tab -->
+					<div x-show="activeTab === 'activity'" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+						<!-- Members Sidebar - keep existing -->
+						<div class="lg:col-span-1">
+							<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+								<h3 class="text-lg font-semibold text-gray-900 mb-4">Members</h3>
+								<div class="space-y-3">
+									for _, member := range members {
+										<div class="flex items-center space-x-3">
+											if member.Avatar != "" {
+												<img src={ member.Avatar } alt="Avatar" class="w-8 h-8 rounded-full">
+											} else {
+												<div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+													<span class="text-white font-medium text-sm">
+														{ string([]rune(member.Name)[0]) }
+													</span>
+												</div>
+											}
+											<div class="flex-1 min-w-0">
+												<p class="text-sm font-medium text-gray-900 truncate">{ member.Name }</p>
+												if member.Role == "admin" {
+													<p class="text-xs text-blue-600">Admin</p>
+												} else {
+													<p class="text-xs text-gray-500">Member</p>
+												}
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						</div>
+
+						<!-- Activity Feed - NOW DYNAMIC -->
+						<div class="lg:col-span-3">
+							<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+								<h3 class="text-lg font-semibold text-gray-900 mb-6">Activity Feed</h3>
+								
+								<!-- Recent Activity Section -->
+								<div class="mb-8">
+									<h4 class="text-md font-medium text-gray-900 mb-4">Recent Activity</h4>
+									if len(activities) > 0 {
+										<div class="space-y-4">
+											for _, activity := range activities {
+												<div class="flex items-start space-x-3">
+													<div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+														<span class="text-white font-medium text-sm">
+															{ string([]rune(activity.ReporterName)[0]) }
+														</span>
+													</div>
+													<div class="flex-1">
+														<p class="text-sm text-gray-900">
+															<span class="font-medium">{ activity.ReporterName }</span> added an offense for <span class="font-medium">{ activity.OffenderName }</span>
+														</p>
+														<p class="text-sm text-gray-500">Offense: { activity.OffenseTypeName }</p>
+														if activity.Notes != nil {
+															<p class="text-sm text-gray-500">Notes: { *activity.Notes }</p>
+														}
+														<p class="text-xs text-gray-400" 
+														   data-timestamp="{ activity.CreatedAt.Format(time.RFC3339) }">
+															{ activity.CreatedAt.Format("Jan 2, 3:04 PM") }
+														</p>
+													</div>
+													<div>
+														if activity.Status == "pending" {
+															<span class="badge badge-pending">Pending</span>
+														} else if activity.Status == "paid" {
+															<span class="badge badge-paid">Paid</span>
+														} else if activity.Status == "disputed" {
+															<span class="badge badge-disputed">Disputed</span>
+														} else if activity.Status == "forgiven" {
+															<span class="badge badge-forgiven">Forgiven</span>
+														}
+													</div>
+												</div>
+											}
+										</div>
+									} else {
+										<div class="text-center py-8">
+											<svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+											</svg>
+											<p class="text-gray-500">No activity yet. Start by reporting your first offense!</p>
+										</div>
+									}
+								</div>
+
+								<!-- Current Balances Section - NOW DYNAMIC -->
+								<div>
+									<h4 class="text-md font-medium text-gray-900 mb-4">Current Balances</h4>
+									<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+										for _, balance := range balances {
+											<div class="bg-gray-50 rounded-xl p-4">
+												<div class="flex items-center space-x-3">
+													if balance.Avatar != nil {
+														<img src={ *balance.Avatar } alt="Avatar" class="w-10 h-10 rounded-full">
+													} else {
+														<div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center">
+															<span class="text-white font-medium">
+																{ string([]rune(balance.Name)[0]) }
+															</span>
+														</div>
+													}
+													<div class="flex-1">
+														<p class="font-medium text-gray-900">{ balance.Name }</p>
+														<p class="text-sm font-medium text-blue-600">
+															Balance: { fmt.Sprintf("$%.2f", balance.TotalOwed) }
+														</p>
+														<p class="text-xs text-gray-500">
+															{ fmt.Sprintf("%d pending offense", balance.PendingCount) }
+															if balance.PendingCount != 1 {
+																s
+															}
+														</p>
+													</div>
+												</div>
+											</div>
+										}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Members Tab - keep existing -->
+					<div x-show="activeTab === 'members'">
+						<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+							<div class="flex items-center justify-between mb-6">
+								<h3 class="text-lg font-semibold text-gray-900">Jar Members</h3>
+								if isAdmin {
+									<button class="btn btn-primary btn-sm">Invite Member</button>
+								}
+							</div>
+							<div class="space-y-4">
+								for _, member := range members {
+									<div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+										<div class="flex items-center space-x-4">
+											if member.Avatar != "" {
+												<img src={ member.Avatar } alt="Avatar" class="w-12 h-12 rounded-full">
+											} else {
+												<div class="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center">
+													<span class="text-white font-medium text-lg">
+														{ string([]rune(member.Name)[0]) }
+													</span>
+												</div>
+											}
+											<div>
+												<p class="font-medium text-gray-900">{ member.Name }</p>
+												<p class="text-sm text-gray-500">{ member.Email }</p>
+												<p class="text-xs text-gray-400" 
+												   data-timestamp="{ member.JoinedAt.Format(time.RFC3339) }">
+													Joined { member.JoinedAt.Format("Jan 2, 2006") }
+												</p>
+											</div>
+										</div>
+										<div class="flex items-center space-x-3">
+											if member.Role == "admin" {
+												<span class="badge badge-blue">Admin</span>
+											} else {
+												<span class="badge badge-gray">Member</span>
+											}
+											if isAdmin && member.Role != "admin" {
+												<button class="text-gray-400 hover:text-gray-600">
+													<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+													</svg>
+												</button>
+											}
+										</div>
+									</div>
+								}
+							</div>
+						</div>
+					</div>
+
+					<!-- Balances Tab - NOW DYNAMIC -->
+					<div x-show="activeTab === 'balances'">
+						<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+							<h3 class="text-lg font-semibold text-gray-900 mb-6">Member Balances</h3>
+							<div class="space-y-4">
+								for _, balance := range balances {
+									<div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
+										<div class="flex items-center space-x-4">
+											if balance.Avatar != nil {
+												<img src={ *balance.Avatar } alt="Avatar" class="w-10 h-10 rounded-full">
+											} else {
+												<div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center">
+													<span class="text-white font-medium">
+														{ string([]rune(balance.Name)[0]) }
+													</span>
+												</div>
+											}
+											<div>
+												<p class="font-medium text-gray-900">{ balance.Name }</p>
+												<p class="text-sm text-gray-500">
+													{ fmt.Sprintf("%d pending offense", balance.PendingCount) }
+													if balance.PendingCount != 1 {
+														s
+													}
+												</p>
+											</div>
+										</div>
+										<div class="text-right">
+											<p class="text-lg font-semibold text-blue-600">{ fmt.Sprintf("$%.2f", balance.TotalOwed) }</p>
+											<p class="text-sm text-gray-500">owed</p>
+										</div>
+									</div>
+								}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
