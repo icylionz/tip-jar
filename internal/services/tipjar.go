@@ -57,6 +57,37 @@ func (s *TipJarService) CreateTipJar(ctx context.Context, name, description stri
 	return s.sqlcTipJarToModel(jar), nil
 }
 
+func (s *TipJarService) CreateTipJarWithInviteCode(ctx context.Context, name, description, inviteCode string, createdBy int) (*models.TipJar, error) {
+	var descText pgtype.Text
+	if description != "" {
+		descText = pgtype.Text{String: description, Valid: true}
+	}
+
+	params := sqlc.CreateTipJarParams{
+		Name:        name,
+		Description: descText,
+		InviteCode:  inviteCode,
+		CreatedBy:   int32(createdBy),
+	}
+
+	jar, err := s.db.CreateTipJar(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create admin membership for creator
+	_, err = s.db.CreateJarMembership(ctx, sqlc.CreateJarMembershipParams{
+		JarID:  jar.ID,
+		UserID: int32(createdBy),
+		Role:   "admin",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sqlcTipJarToModel(jar), nil
+}
+
 func (s *TipJarService) GetTipJar(ctx context.Context, jarID int) (*models.TipJar, error) {
 	jar, err := s.db.GetTipJar(ctx, int32(jarID))
 	if err != nil {

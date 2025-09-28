@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"tipjar"
 	"tipjar/internal/auth"
@@ -230,7 +231,52 @@ func (h *Handlers) handleDashboard(c echo.Context) error {
 }
 
 func (h *Handlers) handleCreateJarForm(c echo.Context) error {
-	return echo.NewHTTPError(http.StatusNotImplemented, "Not ready yet")
+	user := h.getCurrentUser(c)
+	return h.renderTemplate(c, templates.CreateJar(user))
+}
+
+func (h *Handlers) handleCreateJar(c echo.Context) error {
+	user := h.getCurrentUser(c)
+	
+	name := strings.TrimSpace(c.FormValue("name"))
+	description := strings.TrimSpace(c.FormValue("description"))
+	inviteCode := strings.TrimSpace(c.FormValue("invite_code"))
+
+	if name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Jar name is required")
+	}
+	
+	if inviteCode == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invite code is required")
+	}
+	
+	if len(inviteCode) != 8 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invite code must be 8 characters")
+	}
+	
+	existingJar, err := h.tipJarService.GetTipJarByInviteCode(c.Request().Context(), inviteCode)
+	if err != nil {
+		c.Logger().Error("Failed to check invite code", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to validate invite code")
+	}
+	
+	if existingJar != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invite code already exists. Please generate a new one.")
+	}
+	
+	jar, err := h.tipJarService.CreateTipJarWithInviteCode(c.Request().Context(), name, description, inviteCode, user.ID)
+	if err != nil {
+		c.Logger().Error("Failed to create tip jar", "error", err, "user_id", user.ID)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create tip jar")
+	}
+	
+	c.Logger().Info("Tip jar created successfully", "jar_id", jar.ID, "name", jar.Name, "created_by", user.ID)
+	
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success":  true,
+		"jar_id":   jar.ID,
+		"redirect": fmt.Sprintf("/jars/%d", jar.ID),
+	})
 }
 
 func (h *Handlers) handleJoinJarForm(c echo.Context) error {
@@ -242,9 +288,6 @@ func (h *Handlers) handleListJars(c echo.Context) error {
 	return c.String(http.StatusOK, "List jars - not implemented yet")
 }
 
-func (h *Handlers) handleCreateJar(c echo.Context) error {
-	return c.String(http.StatusOK, "Create jar - not implemented yet")
-}
 
 func (h *Handlers) handleJoinJar(c echo.Context) error {
 	return c.String(http.StatusOK, "Join jar - not implemented yet")

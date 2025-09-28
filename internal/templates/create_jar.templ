@@ -1,0 +1,187 @@
+// internal/templates/create_jar.templ
+package templates
+
+import "tipjar/internal/models"
+
+templ CreateJar(user *models.User) {
+	@Base("Create Tip Jar", user) {
+		<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+			<!-- Header -->
+			<div class="text-center mb-8">
+				<h1 class="text-3xl font-bold text-gray-900">Create a New Jar</h1>
+				<p class="text-gray-600 mt-2">Follow the steps below to set up your group's new offense tracker.</p>
+			</div>
+
+			<!-- Create Jar Form -->
+			<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8" 
+			     x-data="createJarForm()">
+				<form @submit.prevent="submitForm" class="space-y-8">
+					<!-- Step 1: Jar Details -->
+					<div class="space-y-6">
+						<div class="flex items-center space-x-3">
+							<div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold">
+								1
+							</div>
+							<h2 class="text-xl font-semibold text-gray-900">Jar Details</h2>
+						</div>
+						
+						<div class="ml-11 space-y-4">
+							<div>
+								<label class="form-label">Jar Name</label>
+								<input type="text" 
+								       x-model="form.name"
+								       name="name"
+								       placeholder="e.g., Office Shenanigans"
+								       class="form-input"
+								       required>
+							</div>
+							
+							<div>
+								<label class="form-label">Description</label>
+								<textarea x-model="form.description"
+								          name="description"
+								          rows="4"
+								          placeholder="A jar for tracking hilarious mishaps and minor offenses during work hours."
+								          class="form-input resize-none"></textarea>
+							</div>
+						</div>
+					</div>
+
+					<!-- Step 2: Generate Invite Code -->
+					<div class="space-y-6">
+						<div class="flex items-center space-x-3">
+							<div class="w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center font-semibold"
+							     :class="form.inviteCode ? 'bg-blue-500' : 'bg-gray-300'">
+								2
+							</div>
+							<h2 class="text-xl font-semibold text-gray-900">Generate Invite Code</h2>
+						</div>
+						
+						<div class="ml-11">
+							<p class="text-gray-600 mb-4">
+								Create a unique code to let others join your jar. You can share this code with your group members.
+							</p>
+							
+							<div class="flex items-center space-x-4">
+								<button type="button" 
+								        @click="generateInviteCode"
+								        class="btn btn-primary">
+									Generate Code
+								</button>
+								
+								<div x-show="form.inviteCode" 
+								     x-transition:enter="transition ease-out duration-200"
+								     x-transition:enter-start="opacity-0 transform scale-95"
+								     x-transition:enter-end="opacity-100 transform scale-100"
+								     class="flex items-center space-x-3">
+									<div class="bg-gray-100 px-4 py-2 rounded-lg font-mono text-lg font-semibold tracking-wider">
+										<span x-text="form.inviteCode"></span>
+									</div>
+									<button type="button" 
+									        @click="copyInviteCode"
+									        class="text-blue-600 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+									        title="Copy to clipboard">
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+										</svg>
+									</button>
+								</div>
+							</div>
+							
+							<input type="hidden" name="invite_code" x-model="form.inviteCode">
+						</div>
+					</div>
+
+					<!-- Submit Button -->
+					<div class="flex justify-center pt-6">
+						<button type="submit" 
+						        :disabled="!canSubmit"
+						        :class="canSubmit ? 'btn btn-primary' : 'btn btn-primary opacity-50 cursor-not-allowed'"
+						        class="px-8 py-3 text-lg">
+							<span x-show="!loading">Create Jar</span>
+							<span x-show="loading" class="flex items-center">
+								<div class="spinner mr-2"></div>
+								Creating...
+							</span>
+						</button>
+					</div>
+					
+					<p class="text-center text-sm text-gray-500 mt-4">
+						Complete all steps to enable jar creation.
+					</p>
+				</form>
+			</div>
+		</div>
+
+		<script>
+			function createJarForm() {
+				return {
+					form: {
+						name: '',
+						description: '',
+						inviteCode: ''
+					},
+					loading: false,
+					
+					get canSubmit() {
+						return this.form.name.trim() && this.form.inviteCode;
+					},
+					
+					generateInviteCode() {
+						// Generate a random 8-character code
+						const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+						let code = '';
+						for (let i = 0; i < 8; i++) {
+							code += chars.charAt(Math.floor(Math.random() * chars.length));
+						}
+						this.form.inviteCode = code;
+					},
+					
+					async copyInviteCode() {
+						try {
+							await navigator.clipboard.writeText(this.form.inviteCode);
+							this.$store.notifications.add('Invite code copied to clipboard!', 'success');
+						} catch (err) {
+							this.$store.notifications.add('Failed to copy invite code', 'error');
+						}
+					},
+					
+					async submitForm() {
+						if (!this.canSubmit) return;
+						
+						this.loading = true;
+						
+						try {
+							const formData = new FormData();
+							formData.append('name', this.form.name);
+							formData.append('description', this.form.description);
+							formData.append('invite_code', this.form.inviteCode);
+							
+							const response = await fetch('/jars', {
+								method: 'POST',
+								body: formData
+							});
+							
+							if (response.ok) {
+								// Redirect to jar or dashboard
+								const data = await response.json();
+								if (data.redirect) {
+									window.location.href = data.redirect;
+								} else {
+									window.location.href = '/dashboard';
+								}
+							} else {
+								const error = await response.text();
+								this.$store.notifications.add(error || 'Failed to create jar', 'error');
+							}
+						} catch (error) {
+							this.$store.notifications.add('Network error. Please try again.', 'error');
+						} finally {
+							this.loading = false;
+						}
+					}
+				}
+			}
+		</script>
+	}
+}
