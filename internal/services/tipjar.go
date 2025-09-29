@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"math/big"
 	"strconv"
 
 	"tipjar/internal/database"
@@ -28,37 +29,6 @@ func (s *TipJarService) CreateTipJar(ctx context.Context, name, description stri
 		return nil, err
 	}
 
-	var descText pgtype.Text
-	if description != "" {
-		descText = pgtype.Text{String: description, Valid: true}
-	}
-
-	params := sqlc.CreateTipJarParams{
-		Name:        name,
-		Description: descText,
-		InviteCode:  inviteCode,
-		CreatedBy:   int32(createdBy),
-	}
-
-	jar, err := s.db.CreateTipJar(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create admin membership for creator
-	_, err = s.db.CreateJarMembership(ctx, sqlc.CreateJarMembershipParams{
-		JarID:  jar.ID,
-		UserID: int32(createdBy),
-		Role:   "admin",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return s.sqlcTipJarToModel(jar), nil
-}
-
-func (s *TipJarService) CreateTipJarWithInviteCode(ctx context.Context, name, description, inviteCode string, createdBy int) (*models.TipJar, error) {
 	var descText pgtype.Text
 	if description != "" {
 		descText = pgtype.Text{String: description, Valid: true}
@@ -250,7 +220,7 @@ func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]mod
 	}
 
 	balances := make([]models.MemberBalance, len(members))
-	
+
 	for i, member := range members {
 		// Get user's balance in this jar
 		balance, err := s.db.GetUserBalanceInJar(ctx, sqlc.GetUserBalanceInJarParams{
@@ -301,4 +271,60 @@ func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]mod
 	}
 
 	return balances, nil
+}
+func (s *TipJarService) CreateTipJarWithInviteCode(ctx context.Context, name, description, inviteCode string, createdBy int) (*models.TipJar, error) {
+	var descText pgtype.Text
+	if description != "" {
+		descText = pgtype.Text{String: description, Valid: true}
+	}
+
+	params := sqlc.CreateTipJarParams{
+		Name:        name,
+		Description: descText,
+		InviteCode:  inviteCode,
+		CreatedBy:   int32(createdBy),
+	}
+
+	jar, err := s.db.CreateTipJar(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create admin membership for creator
+	_, err = s.db.CreateJarMembership(ctx, sqlc.CreateJarMembershipParams{
+		JarID:  jar.ID,
+		UserID: int32(createdBy),
+		Role:   "admin",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Create default offense type for new jar
+	err = s.createDefaultOffenseType(ctx, jar.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sqlcTipJarToModel(jar), nil
+}
+
+// createDefaultOffenseType creates a default "General Offense" type for a new jar
+func (s *TipJarService) createDefaultOffenseType(ctx context.Context, jarID int32) error {
+	var descText pgtype.Text
+	descText = pgtype.Text{String: "A general offense for any rule breaking", Valid: true}
+
+	var costAmount pgtype.Numeric
+	costAmount = pgtype.Numeric{Int: big.NewInt(500), Exp: -2, Valid: true} // $5.00
+
+	params := sqlc.CreateOffenseTypeParams{
+		JarID:       jarID,
+		Name:        "General Offense",
+		Description: descText,
+		CostType:    "monetary",
+		CostAmount:  costAmount,
+	}
+
+	_, err := s.db.CreateOffenseType(ctx, params)
+	return err
 }

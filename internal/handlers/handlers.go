@@ -25,6 +25,7 @@ type Handlers struct {
 	cfg            *config.Config
 	userService    *services.UserService
 	tipJarService  *services.TipJarService
+	offenseService *services.OffenseService
 	sessionService *services.SessionService
 }
 
@@ -35,6 +36,7 @@ func New(db *database.DB, authService *auth.Service, cfg *config.Config) *Handle
 		cfg:            cfg,
 		userService:    services.NewUserService(db),
 		tipJarService:  services.NewTipJarService(db),
+		offenseService: services.NewOffenseService(db),
 		sessionService: services.NewSessionService(cfg.SessionSecret),
 	}
 }
@@ -60,7 +62,8 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	protected.GET("/jars/join", h.handleJoinJarForm)
 	protected.POST("/jars/join", h.handleJoinJar)
 	protected.GET("/jars/:id", h.handleViewJar)
-	protected.POST("/jars/:id/offenses", h.handleReportOffense)
+	protected.GET("/jars/:id/report", h.handleReportOffenseForm)
+	protected.POST("/jars/:id/report", h.handleReportOffense)
 	protected.POST("/offenses/:id/pay", h.handlePayOffense)
 
 	// API routes
@@ -220,7 +223,7 @@ func (h *Handlers) handleLogout(c echo.Context) error {
 
 func (h *Handlers) handleDashboard(c echo.Context) error {
 	user := h.getCurrentUser(c)
-	
+
 	// Get user's tip jars
 	jars, err := h.tipJarService.ListTipJarsForUser(c.Request().Context(), user.ID)
 	if err != nil {
@@ -238,7 +241,7 @@ func (h *Handlers) handleCreateJarForm(c echo.Context) error {
 
 func (h *Handlers) handleCreateJar(c echo.Context) error {
 	user := h.getCurrentUser(c)
-	
+
 	name := strings.TrimSpace(c.FormValue("name"))
 	description := strings.TrimSpace(c.FormValue("description"))
 	inviteCode := strings.TrimSpace(c.FormValue("invite_code"))
@@ -246,40 +249,39 @@ func (h *Handlers) handleCreateJar(c echo.Context) error {
 	if name == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Jar name is required")
 	}
-	
+
 	if inviteCode == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invite code is required")
 	}
-	
+
 	if len(inviteCode) != 8 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invite code must be 8 characters")
 	}
-	
+
 	existingJar, err := h.tipJarService.GetTipJarByInviteCode(c.Request().Context(), inviteCode)
 	if err != nil {
 		c.Logger().Error("Failed to check invite code", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to validate invite code")
 	}
-	
+
 	if existingJar != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invite code already exists. Please generate a new one.")
 	}
-	
+
 	jar, err := h.tipJarService.CreateTipJarWithInviteCode(c.Request().Context(), name, description, inviteCode, user.ID)
 	if err != nil {
 		c.Logger().Error("Failed to create tip jar", "error", err, "user_id", user.ID)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create tip jar")
 	}
-	
+
 	c.Logger().Info("Tip jar created successfully", "jar_id", jar.ID, "name", jar.Name, "created_by", user.ID)
-	
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"success":  true,
 		"jar_id":   jar.ID,
 		"redirect": fmt.Sprintf("/jars/%d", jar.ID),
 	})
 }
-
 
 func (h *Handlers) handleJoinJarForm(c echo.Context) error {
 	user := h.getCurrentUser(c)
@@ -288,48 +290,48 @@ func (h *Handlers) handleJoinJarForm(c echo.Context) error {
 
 func (h *Handlers) handleJoinJar(c echo.Context) error {
 	user := h.getCurrentUser(c)
-	
+
 	inviteCode := strings.TrimSpace(strings.ToUpper(c.FormValue("invite_code")))
-	
+
 	if inviteCode == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invite code is required")
 	}
-	
+
 	if len(inviteCode) != 8 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid invite code format")
 	}
-	
+
 	// Check if jar exists
 	jar, err := h.tipJarService.GetTipJarByInviteCode(c.Request().Context(), inviteCode)
 	if err != nil {
 		c.Logger().Error("Failed to lookup jar by invite code", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to lookup jar")
 	}
-	
+
 	if jar == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Jar not found. Please check your invite code.")
 	}
-	
+
 	// Check if user is already a member
 	isMember, err := h.tipJarService.IsUserJarMember(c.Request().Context(), jar.ID, user.ID)
 	if err != nil {
 		c.Logger().Error("Failed to check jar membership", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to check membership")
 	}
-	
+
 	if isMember {
 		return echo.NewHTTPError(http.StatusBadRequest, "You are already a member of this jar")
 	}
-	
+
 	// Join the jar
 	err = h.tipJarService.JoinTipJar(c.Request().Context(), jar.ID, user.ID)
 	if err != nil {
 		c.Logger().Error("Failed to join jar", "error", err, "jar_id", jar.ID, "user_id", user.ID)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to join jar")
 	}
-	
+
 	c.Logger().Info("User successfully joined jar", "user_id", user.ID, "jar_id", jar.ID, "jar_name", jar.Name)
-	
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"success":  true,
 		"jar_id":   jar.ID,
@@ -340,26 +342,26 @@ func (h *Handlers) handleJoinJar(c echo.Context) error {
 // Add this new handler for the lookup API
 func (h *Handlers) handleLookupJar(c echo.Context) error {
 	inviteCode := strings.TrimSpace(strings.ToUpper(c.QueryParam("invite_code")))
-	
+
 	if inviteCode == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invite code is required")
 	}
-	
+
 	if len(inviteCode) != 8 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid invite code format")
 	}
-	
+
 	// Look up jar by invite code
 	jar, err := h.tipJarService.GetTipJarByInviteCode(c.Request().Context(), inviteCode)
 	if err != nil {
 		c.Logger().Error("Failed to lookup jar by invite code", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to lookup jar")
 	}
-	
+
 	if jar == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Jar not found")
 	}
-	
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"jar": jar,
 	})
@@ -372,43 +374,43 @@ func (h *Handlers) handleListJars(c echo.Context) error {
 
 func (h *Handlers) handleViewJar(c echo.Context) error {
 	user := h.getCurrentUser(c)
-	
+
 	// Parse jar ID from URL
 	jarIDStr := c.Param("id")
 	jarID, err := strconv.Atoi(jarIDStr)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
 	}
-	
+
 	// Get jar details
 	jar, err := h.tipJarService.GetTipJar(c.Request().Context(), jarID)
 	if err != nil {
 		c.Logger().Error("Failed to get jar", "error", err, "jar_id", jarID)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load jar")
 	}
-	
+
 	if jar == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Jar not found")
 	}
-	
+
 	// Check if user is a member of this jar
 	isMember, err := h.tipJarService.IsUserJarMember(c.Request().Context(), jarID, user.ID)
 	if err != nil {
 		c.Logger().Error("Failed to check jar membership", "error", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to check membership")
 	}
-	
+
 	if !isMember {
 		return echo.NewHTTPError(http.StatusForbidden, "You are not a member of this jar")
 	}
-	
+
 	// Check if user is admin
 	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
 	if err != nil {
 		c.Logger().Error("Failed to check admin status", "error", err)
 		isAdmin = false // Default to false on error
 	}
-	
+
 	// Get jar members
 	members, err := h.tipJarService.GetJarMembers(c.Request().Context(), jarID)
 	if err != nil {
@@ -431,12 +433,154 @@ func (h *Handlers) handleViewJar(c echo.Context) error {
 		// Don't fail the whole page, just log the error
 		balances = []models.MemberBalance{}
 	}
-	
+
 	return h.renderTemplate(c, templates.ViewJar(user, jar, members, activities, balances, isAdmin))
 }
 
+func (h *Handlers) handleReportOffenseForm(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	// Parse jar ID
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	// Get jar details
+	jar, err := h.tipJarService.GetTipJar(c.Request().Context(), jarID)
+	if err != nil {
+		c.Logger().Error("Failed to get jar", "error", err, "jar_id", jarID)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load jar")
+	}
+
+	if jar == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Jar not found")
+	}
+
+	// Check if user is a member
+	isMember, err := h.tipJarService.IsUserJarMember(c.Request().Context(), jarID, user.ID)
+	if err != nil {
+		c.Logger().Error("Failed to check jar membership", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to check membership")
+	}
+
+	if !isMember {
+		return echo.NewHTTPError(http.StatusForbidden, "You are not a member of this jar")
+	}
+
+	// Get jar members
+	members, err := h.tipJarService.GetJarMembers(c.Request().Context(), jarID)
+	if err != nil {
+		c.Logger().Error("Failed to get jar members", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load members")
+	}
+
+	// Get offense types
+	offenseTypes, err := h.offenseService.GetOffenseTypesForJar(c.Request().Context(), jarID)
+	if err != nil {
+		c.Logger().Error("Failed to get offense types", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load offense types")
+	}
+
+	return h.renderTemplate(c, templates.ReportOffense(user, jar, members, offenseTypes))
+}
+
 func (h *Handlers) handleReportOffense(c echo.Context) error {
-	return c.String(http.StatusOK, "Report offense - not implemented yet")
+	user := h.getCurrentUser(c)
+
+	// Parse jar ID
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	// Check if user is a member
+	isMember, err := h.tipJarService.IsUserJarMember(c.Request().Context(), jarID, user.ID)
+	if err != nil {
+		c.Logger().Error("Failed to check jar membership", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to check membership")
+	}
+
+	if !isMember {
+		return echo.NewHTTPError(http.StatusForbidden, "You are not a member of this jar")
+	}
+
+	// Parse form values
+	offenderIDStr := strings.TrimSpace(c.FormValue("offender_id"))
+	offenseTypeIDStr := strings.TrimSpace(c.FormValue("offense_type_id"))
+	notes := strings.TrimSpace(c.FormValue("notes"))
+	costOverrideStr := strings.TrimSpace(c.FormValue("cost_override"))
+
+	if offenderIDStr == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Offender is required")
+	}
+
+	if offenseTypeIDStr == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Offense type is required")
+	}
+
+	offenderID, err := strconv.Atoi(offenderIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid offender ID")
+	}
+
+	offenseTypeID, err := strconv.Atoi(offenseTypeIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid offense type ID")
+	}
+
+	// Check if offender is a member of the jar
+	isOffenderMember, err := h.tipJarService.IsUserJarMember(c.Request().Context(), jarID, offenderID)
+	if err != nil {
+		c.Logger().Error("Failed to check offender membership", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify offender")
+	}
+
+	if !isOffenderMember {
+		return echo.NewHTTPError(http.StatusBadRequest, "Offender is not a member of this jar")
+	}
+
+	// Parse cost override if provided
+	var costOverride *float64
+	if costOverrideStr != "" {
+		cost, err := strconv.ParseFloat(costOverrideStr, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid cost override")
+		}
+		if cost < 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Cost override cannot be negative")
+		}
+		costOverride = &cost
+	}
+
+	// Create the offense
+	offense, err := h.offenseService.CreateOffense(
+		c.Request().Context(),
+		jarID,
+		offenseTypeID,
+		user.ID,
+		offenderID,
+		notes,
+		costOverride,
+	)
+	if err != nil {
+		c.Logger().Error("Failed to create offense", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to report offense")
+	}
+
+	c.Logger().Info("Offense reported successfully",
+		"offense_id", offense.ID,
+		"jar_id", jarID,
+		"reporter_id", user.ID,
+		"offender_id", offenderID)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success":    true,
+		"offense_id": offense.ID,
+		"redirect":   fmt.Sprintf("/jars/%d", jarID),
+	})
 }
 
 func (h *Handlers) handlePayOffense(c echo.Context) error {
@@ -458,7 +602,7 @@ func (h *Handlers) requireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 		if user == nil {
 			return c.Redirect(http.StatusTemporaryRedirect, "/login")
 		}
-		
+
 		// Store user in context for easy access
 		c.Set("user", user)
 		return next(c)
