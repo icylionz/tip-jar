@@ -65,6 +65,11 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	protected.GET("/jars/:id/report", h.handleReportOffenseForm)
 	protected.POST("/jars/:id/report", h.handleReportOffense)
 	protected.POST("/offenses/:id/pay", h.handlePayOffense)
+	protected.GET("/jars/:id/settings", h.handleJarSettings)
+	protected.POST("/jars/:id/settings", h.handleUpdateJarSettings)
+	protected.POST("/jars/:id/offense-types", h.handleCreateOffenseType)
+	protected.POST("/jars/:id/offense-types/:offense_type_id/deactivate", h.handleDeactivateOffenseType)
+
 
 	// API routes
 	api := e.Group("/api/v1")
@@ -638,4 +643,206 @@ func (h *Handlers) getCurrentUser(c echo.Context) *models.User {
 
 func (h *Handlers) renderTemplate(c echo.Context, component templ.Component) error {
 	return component.Render(c.Request().Context(), c.Response().Writer)
+}
+
+func (h *Handlers) handleJarSettings(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	// Parse jar ID
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	// Get jar details
+	jar, err := h.tipJarService.GetTipJar(c.Request().Context(), jarID)
+	if err != nil {
+		c.Logger().Error("Failed to get jar", "error", err, "jar_id", jarID)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load jar")
+	}
+
+	if jar == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Jar not found")
+	}
+
+	// Check if user is a member
+	isMember, err := h.tipJarService.IsUserJarMember(c.Request().Context(), jarID, user.ID)
+	if err != nil {
+		c.Logger().Error("Failed to check jar membership", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to check membership")
+	}
+
+	if !isMember {
+		return echo.NewHTTPError(http.StatusForbidden, "You are not a member of this jar")
+	}
+
+	// Check if user is admin
+	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
+	if err != nil {
+		c.Logger().Error("Failed to check admin status", "error", err)
+		isAdmin = false
+	}
+
+	// Get jar members
+	members, err := h.tipJarService.GetJarMembers(c.Request().Context(), jarID)
+	if err != nil {
+		c.Logger().Error("Failed to get jar members", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load members")
+	}
+
+	// Get all offense types (including inactive ones for admins)
+	offenseTypes, err := h.offenseService.GetAllOffenseTypesForJar(c.Request().Context(), jarID)
+	if err != nil {
+		c.Logger().Error("Failed to get offense types", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load offense types")
+	}
+
+	return h.renderTemplate(c, templates.JarSettings(user, jar, members, offenseTypes, isAdmin))
+}
+
+func (h *Handlers) handleUpdateJarSettings(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	// Parse jar ID
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	// Check if user is admin
+	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
+	if err != nil || !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Only admins can update jar settings")
+	}
+
+	name := strings.TrimSpace(c.FormValue("name"))
+	description := strings.TrimSpace(c.FormValue("description"))
+
+	if name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Jar name is required")
+	}
+
+	err = h.tipJarService.UpdateTipJar(c.Request().Context(), jarID, name, description)
+	if err != nil {
+		c.Logger().Error("Failed to update jar", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update jar")
+	}
+
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/jars/%d/settings", jarID))
+}
+
+func (h *Handlers) handleCreateOffenseType(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	// Parse jar ID
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	// Check if user is admin
+	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
+	if err != nil || !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Only admins can create offense types")
+	}
+
+	name := strings.TrimSpace(c.FormValue("name"))
+	description := strings.TrimSpace(c.FormValue("description"))
+	costType := strings.TrimSpace(c.FormValue("cost_type"))
+	costAmountStr := strings.TrimSpace(c.FormValue("cost_amount"))
+	costAction := strings.TrimSpace(c.FormValue("cost_action"))
+
+	if name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Offense name is required")
+	}
+
+	if costType == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Cost type is required")
+	}
+
+	var costAmount *float64
+	if costType == "monetary" {
+		if costAmountStr == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount is required for monetary offenses")
+		}
+		amount, err := strconv.ParseFloat(costAmountStr, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid cost amount")
+		}
+		if amount < 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount cannot be negative")
+		}
+		costAmount = &amount
+	}
+
+	var costActionPtr *string
+	if costType != "monetary" {
+		if costAction == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Cost action is required for %s offenses", costType))
+		}
+		costActionPtr = &costAction
+	}
+
+	_, err = h.offenseService.CreateOffenseType(
+		c.Request().Context(),
+		jarID,
+		name,
+		description,
+		costType,
+		costAmount,
+		costActionPtr,
+	)
+	if err != nil {
+		c.Logger().Error("Failed to create offense type", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create offense type")
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+	})
+}
+
+func (h *Handlers) handleDeactivateOffenseType(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	// Parse IDs
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	offenseTypeIDStr := c.Param("offense_type_id")
+	offenseTypeID, err := strconv.Atoi(offenseTypeIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid offense type ID")
+	}
+
+	// Check if user is admin
+	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
+	if err != nil || !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Only admins can deactivate offense types")
+	}
+
+	// Verify the offense type belongs to this jar
+	offenseType, err := h.offenseService.GetOffenseType(c.Request().Context(), offenseTypeID)
+	if err != nil {
+		c.Logger().Error("Failed to get offense type", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify offense type")
+	}
+
+	if offenseType == nil || offenseType.JarID != jarID {
+		return echo.NewHTTPError(http.StatusNotFound, "Offense type not found")
+	}
+
+	err = h.offenseService.DeactivateOffenseType(c.Request().Context(), offenseTypeID)
+	if err != nil {
+		c.Logger().Error("Failed to deactivate offense type", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to deactivate offense type")
+	}
+
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/jars/%d/settings", jarID))
 }

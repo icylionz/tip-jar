@@ -8,6 +8,7 @@ import (
 	"tipjar/internal/database/sqlc"
 	"tipjar/internal/models"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -27,8 +28,6 @@ func (s *OffenseService) CreateOffense(ctx context.Context, jarID, offenseTypeID
 
 	var costOverrideNumeric pgtype.Numeric
 	if costOverride != nil {
-		// Convert float64 to pgtype.Numeric
-		// For simplicity, multiply by 100 and store as cents
 		cents := int64(*costOverride * 100)
 		costOverrideNumeric = pgtype.Numeric{
 			Int:   big.NewInt(cents),
@@ -68,6 +67,113 @@ func (s *OffenseService) GetOffenseTypesForJar(ctx context.Context, jarID int) (
 	return result, nil
 }
 
+func (s *OffenseService) GetAllOffenseTypesForJar(ctx context.Context, jarID int) ([]models.OffenseType, error) {
+	types, err := s.db.ListAllOffenseTypesForJar(ctx, int32(jarID))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]models.OffenseType, len(types))
+	for i, t := range types {
+		result[i] = *s.sqlcOffenseTypeToModel(t)
+	}
+
+	return result, nil
+}
+
+func (s *OffenseService) GetOffenseType(ctx context.Context, offenseTypeID int) (*models.OffenseType, error) {
+	offenseType, err := s.db.GetOffenseType(ctx, int32(offenseTypeID))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return s.sqlcOffenseTypeToModel(offenseType), nil
+}
+
+func (s *OffenseService) CreateOffenseType(ctx context.Context, jarID int, name, description, costType string, costAmount *float64, costAction *string) (*models.OffenseType, error) {
+	var descText pgtype.Text
+	if description != "" {
+		descText = pgtype.Text{String: description, Valid: true}
+	}
+
+	var costAmountNumeric pgtype.Numeric
+	if costAmount != nil {
+		cents := int64(*costAmount * 100)
+		costAmountNumeric = pgtype.Numeric{
+			Int:   big.NewInt(cents),
+			Exp:   -2,
+			Valid: true,
+		}
+	}
+
+	var costActionText pgtype.Text
+	if costAction != nil && *costAction != "" {
+		costActionText = pgtype.Text{String: *costAction, Valid: true}
+	}
+
+	params := sqlc.CreateOffenseTypeParams{
+		JarID:       int32(jarID),
+		Name:        name,
+		Description: descText,
+		CostType:    costType,
+		CostAmount:  costAmountNumeric,
+		CostAction:  costActionText,
+	}
+
+	offenseType, err := s.db.CreateOffenseType(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sqlcOffenseTypeToModel(offenseType), nil
+}
+
+func (s *OffenseService) UpdateOffenseType(ctx context.Context, offenseTypeID int, name, description, costType string, costAmount *float64, costAction *string) (*models.OffenseType, error) {
+	var descText pgtype.Text
+	if description != "" {
+		descText = pgtype.Text{String: description, Valid: true}
+	}
+
+	var costAmountNumeric pgtype.Numeric
+	if costAmount != nil {
+		cents := int64(*costAmount * 100)
+		costAmountNumeric = pgtype.Numeric{
+			Int:   big.NewInt(cents),
+			Exp:   -2,
+			Valid: true,
+		}
+	}
+
+	var costActionText pgtype.Text
+	if costAction != nil && *costAction != "" {
+		costActionText = pgtype.Text{String: *costAction, Valid: true}
+	}
+
+	params := sqlc.UpdateOffenseTypeParams{
+		ID:          int32(offenseTypeID),
+		Name:        name,
+		Description: descText,
+		CostType:    costType,
+		CostAmount:  costAmountNumeric,
+		CostAction:  costActionText,
+	}
+
+	offenseType, err := s.db.UpdateOffenseType(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sqlcOffenseTypeToModel(offenseType), nil
+}
+
+func (s *OffenseService) DeactivateOffenseType(ctx context.Context, offenseTypeID int) error {
+	_, err := s.db.DeactivateOffenseType(ctx, int32(offenseTypeID))
+	return err
+}
+
 func (s *OffenseService) sqlcOffenseToModel(offense sqlc.Offense) *models.Offense {
 	var notes *string
 	if offense.Notes.Valid {
@@ -76,7 +182,6 @@ func (s *OffenseService) sqlcOffenseToModel(offense sqlc.Offense) *models.Offens
 
 	var costOverride *float64
 	if offense.CostOverride.Valid {
-		// Convert pgtype.Numeric to float64
 		floatVal, _ := offense.CostOverride.Float64Value()
 		if floatVal.Valid {
 			costOverride = &floatVal.Float64

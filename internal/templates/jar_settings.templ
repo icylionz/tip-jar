@@ -1,0 +1,358 @@
+package templates
+
+import "tipjar/internal/models"
+import "fmt"
+
+templ JarSettings(user *models.User, jar *models.TipJar, members []models.JarMemberInfo, offenseTypes []models.OffenseType, isAdmin bool) {
+	@Base(jar.Name+" - Settings", user) {
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+			<!-- Header -->
+			<div class="mb-8">
+				<div class="flex items-center space-x-3 mb-2">
+					<a href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) } class="text-gray-500 hover:text-gray-700">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+						</svg>
+					</a>
+					<h1 class="text-3xl font-bold text-gray-900">Jar Settings</h1>
+				</div>
+				<p class="text-gray-600">Manage your jar's settings, members, and offense types.</p>
+			</div>
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+				<!-- Sidebar Navigation -->
+				<div class="lg:col-span-1">
+					<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4" x-data="{ active: 'offense-types' }">
+						<nav class="space-y-1">
+							<button
+								@click="active = 'offense-types'"
+								:class="active === 'offense-types' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-50'"
+								class="w-full text-left px-4 py-3 rounded-lg font-medium transition-colors flex items-center"
+							>
+								<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+								</svg>
+								Offense Types
+							</button>
+							<button
+								@click="active = 'members'"
+								:class="active === 'members' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-50'"
+								class="w-full text-left px-4 py-3 rounded-lg font-medium transition-colors flex items-center"
+							>
+								<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+								</svg>
+								Members
+							</button>
+							<button
+								@click="active = 'jar-settings'"
+								:class="active === 'jar-settings' ? 'bg-green-50 text-green-700' : 'text-gray-700 hover:bg-gray-50'"
+								class="w-full text-left px-4 py-3 rounded-lg font-medium transition-colors flex items-center"
+							>
+								<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+								</svg>
+								Jar Settings
+							</button>
+						</nav>
+					</div>
+				</div>
+				<!-- Main Content -->
+				<div class="lg:col-span-2" x-data="{ active: 'offense-types', showOffenseTypeModal: false, editingOffenseType: null }">
+					<!-- Offense Types Section -->
+					<div x-show="active === 'offense-types'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+						<div class="flex items-center justify-between mb-6">
+							<h2 class="text-xl font-semibold text-gray-900">Offense Types</h2>
+							if isAdmin {
+								<button
+									@click="showOffenseTypeModal = true; editingOffenseType = null"
+									class="btn btn-primary btn-sm"
+								>
+									<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+									</svg>
+									Add Offense Type
+								</button>
+							}
+						</div>
+						<div class="space-y-3">
+							for _, offenseType := range offenseTypes {
+								<div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+									<div class="flex items-center space-x-4">
+										<div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+											if offenseType.CostType == "monetary" {
+												<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+												</svg>
+											} else if offenseType.CostType == "action" {
+												<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+												</svg>
+											} else if offenseType.CostType == "item" {
+												<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+												</svg>
+											} else {
+												<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+												</svg>
+											}
+										</div>
+										<div>
+											<h3 class="font-medium text-gray-900">{ offenseType.Name }</h3>
+											if offenseType.Description != nil {
+												<p class="text-sm text-gray-500">{ *offenseType.Description }</p>
+											}
+											<div class="flex items-center space-x-3 mt-1">
+												if offenseType.CostType == "monetary" && offenseType.CostAmount != nil {
+													<span class="text-sm font-medium text-blue-600">{ fmt.Sprintf("$%.2f", *offenseType.CostAmount) }</span>
+												} else if offenseType.CostAction != nil {
+													<span class="text-sm font-medium text-blue-600">{ *offenseType.CostAction }</span>
+												}
+												<span class="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">{ offenseType.CostType }</span>
+												if !offenseType.IsActive {
+													<span class="text-xs px-2 py-1 bg-red-100 rounded-full text-red-600">Inactive</span>
+												}
+											</div>
+										</div>
+									</div>
+									if isAdmin {
+										<div class="flex items-center space-x-2">
+											<button
+												@click={ fmt.Sprintf("editingOffenseType = %d; showOffenseTypeModal = true", offenseType.ID) }
+												class="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+											>
+												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+												</svg>
+											</button>
+											if offenseType.IsActive {
+												<form
+													action={ templ.URL(fmt.Sprintf("/jars/%d/offense-types/%d/deactivate", jar.ID, offenseType.ID)) }
+													method="POST"
+													onsubmit="return confirm('Are you sure you want to deactivate this offense type? It will no longer be available for new offenses.')"
+												>
+													<button type="submit" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors">
+														<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+														</svg>
+													</button>
+												</form>
+											}
+										</div>
+									}
+								</div>
+							}
+						</div>
+					</div>
+					<!-- Members Section -->
+					<div x-show="active === 'members'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+						<div class="flex items-center justify-between mb-6">
+							<h2 class="text-xl font-semibold text-gray-900">Members</h2>
+							if isAdmin {
+								<button class="btn btn-primary btn-sm">
+									<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+									</svg>
+									Invite Member
+								</button>
+							}
+						</div>
+						<div class="space-y-3">
+							for _, member := range members {
+								<div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
+									<div class="flex items-center space-x-4">
+										if member.Avatar != "" {
+											<img src={ member.Avatar } alt="Avatar" class="w-12 h-12 rounded-full"/>
+										} else {
+											<div class="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center">
+												<span class="text-white font-medium text-lg">
+													{ string([]rune(member.Name)[0]) }
+												</span>
+											</div>
+										}
+										<div>
+											<p class="font-medium text-gray-900">{ member.Name }</p>
+											<p class="text-sm text-gray-500">{ member.Email }</p>
+											<p class="text-xs text-gray-400">
+												Joined { member.JoinedAt.Format("Jan 2, 2006") }
+											</p>
+										</div>
+									</div>
+									<div class="flex items-center space-x-3">
+										if member.Role == "admin" {
+											<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">Admin</span>
+										} else {
+											<span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Member</span>
+										}
+										if isAdmin && member.Role != "admin" {
+											<button class="text-gray-400 hover:text-gray-600 p-2">
+												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+												</svg>
+											</button>
+										}
+									</div>
+								</div>
+							}
+						</div>
+					</div>
+					<!-- Jar Settings Section -->
+					<div x-show="active === 'jar-settings'" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+						<h2 class="text-xl font-semibold text-gray-900 mb-6">Jar Settings</h2>
+						<form action={ templ.URL(fmt.Sprintf("/jars/%d/settings", jar.ID)) } method="POST" class="space-y-6">
+							<div>
+								<label class="form-label">Jar Name</label>
+								<input type="text" name="name" value={ jar.Name } class="form-input" required/>
+							</div>
+							<div>
+								<label class="form-label">Description</label>
+								<textarea name="description" rows="4" class="form-input">
+									if jar.Description != nil {
+										{ *jar.Description }
+									}
+								</textarea>
+							</div>
+							<div>
+								<label class="form-label">Invite Code</label>
+								<div class="flex items-center space-x-3">
+									<input type="text" value={ jar.InviteCode } class="form-input font-mono" readonly/>
+									<button
+										type="button"
+										@click={ "utils.copyToClipboard('" + jar.InviteCode + "')" }
+										class="btn btn-secondary"
+									>
+										Copy
+									</button>
+								</div>
+								<p class="text-sm text-gray-500 mt-1">Share this code with others to invite them to your jar</p>
+							</div>
+							if isAdmin {
+								<div class="flex justify-end space-x-3">
+									<a href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) } class="btn btn-secondary">
+										Cancel
+									</a>
+									<button type="submit" class="btn btn-success">
+										Save Changes
+									</button>
+								</div>
+							}
+						</form>
+					</div>
+					<!-- Offense Type Modal - MOVED INSIDE THE x-data SCOPE -->
+					@OffenseTypeModal(jar.ID)
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ OffenseTypeModal(jarID int) {
+	<div x-show="showOffenseTypeModal" 
+	     x-transition:enter="transition ease-out duration-200"
+	     x-transition:enter-start="opacity-0"
+	     x-transition:enter-end="opacity-100"
+	     x-transition:leave="transition ease-in duration-150"
+	     x-transition:leave-start="opacity-100"
+	     x-transition:leave-end="opacity-0"
+	     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+	     @click.self="showOffenseTypeModal = false"
+	     style="display: none;">
+		<div @click.stop 
+		     x-transition:enter="transition ease-out duration-200"
+		     x-transition:enter-start="opacity-0 transform scale-95"
+		     x-transition:enter-end="opacity-100 transform scale-100"
+		     x-transition:leave="transition ease-in duration-150"
+		     x-transition:leave-start="opacity-100 transform scale-100"
+		     x-transition:leave-end="opacity-0 transform scale-95"
+		     class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+			<div class="p-6" 
+			     x-data={ fmt.Sprintf("offenseTypeFormData(%d)", jarID) }>
+				<div class="flex items-center justify-between mb-6">
+					<h3 class="text-xl font-semibold text-gray-900" x-text="editingOffenseType ? 'Edit Offense Type' : 'New Offense Type'"></h3>
+					<button @click="showOffenseTypeModal = false" class="text-gray-400 hover:text-gray-600">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+						</svg>
+					</button>
+				</div>
+
+				<form @submit.prevent="submitForm" class="space-y-6">
+					<div>
+						<label class="form-label">Offense Name</label>
+						<input type="text" 
+						       x-model="form.name"
+						       placeholder="e.g., Late to Meeting"
+						       class="form-input"
+						       required>
+					</div>
+
+					<div>
+						<label class="form-label">Description (Optional)</label>
+						<textarea x-model="form.description"
+						          rows="3"
+						          placeholder="Describe when this offense applies..."
+						          class="form-input"></textarea>
+					</div>
+
+					<div>
+						<label class="form-label">Cost Type</label>
+						<select x-model="form.cost_type" @change="updateCostType" class="form-input" required>
+							<option value="monetary">Monetary</option>
+							<option value="action">Action</option>
+							<option value="item">Item</option>
+							<option value="service">Service</option>
+						</select>
+					</div>
+
+					<div x-show="form.cost_type === 'monetary'">
+						<label class="form-label">Amount</label>
+						<div class="relative">
+							<span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+							<input type="number" 
+							       x-model="form.cost_amount"
+							       step="0.01"
+							       min="0"
+							       placeholder="5.00"
+							       class="form-input pl-8">
+						</div>
+					</div>
+
+					<div x-show="form.cost_type !== 'monetary'">
+						<label class="form-label">
+							<span x-show="form.cost_type === 'action'">Action Required</span>
+							<span x-show="form.cost_type === 'item'">Item Required</span>
+							<span x-show="form.cost_type === 'service'">Service Required</span>
+						</label>
+						<input type="text" 
+						       x-model="form.cost_action"
+						       placeholder="e.g., Buy coffee for everyone"
+						       class="form-input">
+					</div>
+
+					<div x-show="error" class="bg-red-50 border border-red-200 rounded-xl p-4">
+						<div class="flex items-center">
+							<svg class="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+							</svg>
+							<p class="text-red-800 text-sm" x-text="error"></p>
+						</div>
+					</div>
+
+					<div class="flex justify-end space-x-3 pt-4">
+						<button type="button" @click="showOffenseTypeModal = false" class="btn btn-secondary">
+							Cancel
+						</button>
+						<button type="submit" :disabled="loading" class="btn btn-success">
+							<span x-show="!loading" x-text="editingOffenseType ? 'Update' : 'Create'"></span>
+							<span x-show="loading" class="flex items-center">
+								<div class="spinner mr-2"></div>
+								Saving...
+							</span>
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+}

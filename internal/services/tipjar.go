@@ -328,3 +328,19 @@ func (s *TipJarService) createDefaultOffenseType(ctx context.Context, jarID int3
 	_, err := s.db.CreateOffenseType(ctx, params)
 	return err
 }
+
+func (s *TipJarService) UpdateTipJar(ctx context.Context, jarID int, name, description string) error {
+	var descText pgtype.Text
+	if description != "" {
+		descText = pgtype.Text{String: description, Valid: true}
+	}
+
+	params := sqlc.UpdateTipJarParams{
+		ID:          int32(jarID),
+		Name:        name,
+		Description: descText,
+	}
+
+	_, err := s.db.UpdateTipJar(ctx, params)
+	return err
+}

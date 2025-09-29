@@ -10,7 +10,7 @@
 - [x] **As a** user, **I want to** join an existing tip jar using an invite code, **so that** I can participate with my friends
 - [x] **As a** jar admin, **I want to** generate and share an invite code, **so that** others can join my tip jar
 - [x] **As a** user, **I want to** see a list of all tip jars I'm a member of, **so that** I can switch between different groups
-- [ ] **As a** user, **I want to** report an offense committed by another member, **so that** it's tracked in the ledger
+- [x] **As a** user, **I want to** report an offense committed by another member, **so that** it's tracked in the ledger
 - [ ] **As an** offender, **I want to** mark a monetary offense as paid, **so that** my debt is cleared
 - [ ] **As a** user, **I want to** see all pending offenses in a tip jar, **so that** I know what's currently owed
 - [ ] **As a** user, **I want to** see each member's current balance in the jar, **so that** I know who owes what
@@ -19,14 +19,14 @@
 
 ### Goal: Let jars define their own offense types with different cost types
 
-- [ ] **As a** jar admin, **I want to** create custom offense types with specific costs, **so that** our jar has relevant penalties
-- [ ] **As a** jar admin, **I want to** set non-monetary costs (actions/items/services), **so that** penalties can be creative
-- [ ] **As a** user, **I want to** see all available offense types in my jar, **so that** I know what can be reported
-- [ ] **As a** user, **I want to** select from predefined offense types when reporting, **so that** reporting is consistent
-- [ ] **As a** user, **I want to** add notes when reporting an offense, **so that** I can provide context
-- [ ] **As a** user, **I want to** override the default cost when reporting, **so that** I can adjust for specific situations
-- [ ] **As a** jar admin, **I want to** edit existing offense types, **so that** I can adjust penalties as needed
-- [ ] **As a** jar admin, **I want to** deactivate offense types without deleting them, **so that** I can preserve history
+- [x] **As a** jar admin, **I want to** create custom offense types with specific costs, **so that** our jar has relevant penalties
+- [x] **As a** jar admin, **I want to** set non-monetary costs (actions/items/services), **so that** penalties can be creative
+- [x] **As a** user, **I want to** see all available offense types in my jar, **so that** I know what can be reported
+- [x] **As a** user, **I want to** select from predefined offense types when reporting, **so that** reporting is consistent
+- [x] **As a** user, **I want to** add notes when reporting an offense, **so that** I can provide context
+- [x] **As a** user, **I want to** override the default cost when reporting, **so that** I can adjust for specific situations
+- [x] **As a** jar admin, **I want to** edit existing offense types, **so that** I can adjust penalties as needed
+- [x] **As a** jar admin, **I want to** deactivate offense types without deleting them, **so that** I can preserve history
 
 ## Iteration 3: Payment Verification - "Make It Trustworthy"
 

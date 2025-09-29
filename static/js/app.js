@@ -161,3 +161,74 @@ if ("serviceWorker" in navigator) {
     // navigator.serviceWorker.register('/static/js/sw.js'); // TODO: Implement service worker
   });
 }
+// Offense Type Form Data
+function offenseTypeFormData(jarID) {
+  return {
+    form: {
+      name: '',
+      description: '',
+      cost_type: 'monetary',
+      cost_amount: '',
+      cost_action: ''
+    },
+    error: null,
+    loading: false,
+    jarID: jarID,
+    
+    updateCostType() {
+      if (this.form.cost_type === 'monetary') {
+        this.form.cost_action = '';
+      } else {
+        this.form.cost_amount = '';
+      }
+    },
+    
+    async submitForm() {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        const formData = new FormData();
+        formData.append('name', this.form.name);
+        formData.append('description', this.form.description);
+        formData.append('cost_type', this.form.cost_type);
+        
+        if (this.form.cost_type === 'monetary') {
+          if (!this.form.cost_amount) {
+            this.error = 'Cost amount is required for monetary offenses';
+            this.loading = false;
+            return;
+          }
+          formData.append('cost_amount', this.form.cost_amount);
+        } else {
+          if (!this.form.cost_action) {
+            this.error = 'Cost action is required';
+            this.loading = false;
+            return;
+          }
+          formData.append('cost_action', this.form.cost_action);
+        }
+        
+        const url = `/jars/${this.jarID}/offense-types`;
+        console.log('Submitting to URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const errorText = await response.text();
+          this.error = errorText || 'Failed to save offense type';
+        }
+      } catch (error) {
+        console.error('Caught error:', error);
+        this.error = 'Network error. Please try again.';
+      } finally {
+        this.loading = false;
+      }
+    }
+  };
+}
