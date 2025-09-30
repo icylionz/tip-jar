@@ -46,9 +46,8 @@ type OffenseType struct {
 	JarID       int       `json:"jar_id" db:"jar_id"`
 	Name        string    `json:"name" db:"name"`
 	Description *string   `json:"description" db:"description"`
-	CostType    string    `json:"cost_type" db:"cost_type"` // 'monetary', 'action', 'item', 'service'
-	CostAmount  *float64  `json:"cost_amount" db:"cost_amount"`
-	CostAction  *string   `json:"cost_action" db:"cost_action"`
+	CostAmount  *float64  `json:"cost_amount" db:"cost_amount"` 
+	CostUnit    *string   `json:"cost_unit" db:"cost_unit"` 
 	IsActive    bool      `json:"is_active" db:"is_active"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`

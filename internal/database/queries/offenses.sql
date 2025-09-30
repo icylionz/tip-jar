@@ -5,7 +5,7 @@ WHERE id = $1;
 
 -- name: ListOffensesForJar :many
 SELECT o.id, o.jar_id, o.offense_type_id, o.reporter_id, o.offender_id, o.notes, o.cost_override, o.status, o.created_at, o.updated_at,
-       ot.name as offense_type_name, ot.cost_type, ot.cost_amount, ot.cost_action,
+       ot.name as offense_type_name, ot.cost_amount, ot.cost_unit,
        reporter.name as reporter_name, offender.name as offender_name
 FROM offenses o
 INNER JOIN offense_types ot ON o.offense_type_id = ot.id
@@ -17,7 +17,7 @@ LIMIT $2 OFFSET $3;
 
 -- name: ListPendingOffensesForUser :many
 SELECT o.id, o.jar_id, o.offense_type_id, o.reporter_id, o.offender_id, o.notes, o.cost_override, o.status, o.created_at, o.updated_at,
-       ot.name as offense_type_name, ot.cost_type, ot.cost_amount, ot.cost_action,
+       ot.name as offense_type_name, ot.cost_amount, ot.cost_unit,
        tj.name as jar_name
 FROM offenses o
 INNER JOIN offense_types ot ON o.offense_type_id = ot.id
@@ -40,12 +40,8 @@ RETURNING id, jar_id, offense_type_id, reporter_id, offender_id, notes, cost_ove
 SELECT 
     COALESCE(SUM(
         CASE 
-            WHEN ot.cost_type = 'monetary' THEN 
-                CASE 
-                    WHEN o.cost_override IS NOT NULL THEN o.cost_override
-                    ELSE ot.cost_amount
-                END
-            ELSE 0
+            WHEN o.cost_override IS NOT NULL THEN o.cost_override
+            ELSE ot.cost_amount
         END
     ), 0) as total_owed
 FROM offenses o

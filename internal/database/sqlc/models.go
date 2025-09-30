@@ -34,12 +34,11 @@ type OffenseType struct {
 	JarID       int32            `db:"jar_id" json:"jar_id"`
 	Name        string           `db:"name" json:"name"`
 	Description pgtype.Text      `db:"description" json:"description"`
-	CostType    string           `db:"cost_type" json:"cost_type"`
 	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
-	CostAction  pgtype.Text      `db:"cost_action" json:"cost_action"`
 	IsActive    bool             `db:"is_active" json:"is_active"`
 	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
 }
 
 type Payment struct {

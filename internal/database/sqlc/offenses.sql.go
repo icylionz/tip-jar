@@ -79,12 +79,8 @@ const getUserBalanceInJar = `-- name: GetUserBalanceInJar :one
 SELECT 
     COALESCE(SUM(
         CASE 
-            WHEN ot.cost_type = 'monetary' THEN 
-                CASE 
-                    WHEN o.cost_override IS NOT NULL THEN o.cost_override
-                    ELSE ot.cost_amount
-                END
-            ELSE 0
+            WHEN o.cost_override IS NOT NULL THEN o.cost_override
+            ELSE ot.cost_amount
         END
     ), 0) as total_owed
 FROM offenses o
@@ -106,7 +102,7 @@ func (q *Queries) GetUserBalanceInJar(ctx context.Context, arg GetUserBalanceInJ
 
 const listOffensesForJar = `-- name: ListOffensesForJar :many
 SELECT o.id, o.jar_id, o.offense_type_id, o.reporter_id, o.offender_id, o.notes, o.cost_override, o.status, o.created_at, o.updated_at,
-       ot.name as offense_type_name, ot.cost_type, ot.cost_amount, ot.cost_action,
+       ot.name as offense_type_name, ot.cost_amount, ot.cost_unit,
        reporter.name as reporter_name, offender.name as offender_name
 FROM offenses o
 INNER JOIN offense_types ot ON o.offense_type_id = ot.id
@@ -135,9 +131,8 @@ type ListOffensesForJarRow struct {
 	CreatedAt       pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	OffenseTypeName string           `db:"offense_type_name" json:"offense_type_name"`
-	CostType        string           `db:"cost_type" json:"cost_type"`
 	CostAmount      pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
-	CostAction      pgtype.Text      `db:"cost_action" json:"cost_action"`
+	CostUnit        pgtype.Text      `db:"cost_unit" json:"cost_unit"`
 	ReporterName    string           `db:"reporter_name" json:"reporter_name"`
 	OffenderName    string           `db:"offender_name" json:"offender_name"`
 }
@@ -163,9 +158,8 @@ func (q *Queries) ListOffensesForJar(ctx context.Context, arg ListOffensesForJar
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.OffenseTypeName,
-			&i.CostType,
 			&i.CostAmount,
-			&i.CostAction,
+			&i.CostUnit,
 			&i.ReporterName,
 			&i.OffenderName,
 		); err != nil {
@@ -181,7 +175,7 @@ func (q *Queries) ListOffensesForJar(ctx context.Context, arg ListOffensesForJar
 
 const listPendingOffensesForUser = `-- name: ListPendingOffensesForUser :many
 SELECT o.id, o.jar_id, o.offense_type_id, o.reporter_id, o.offender_id, o.notes, o.cost_override, o.status, o.created_at, o.updated_at,
-       ot.name as offense_type_name, ot.cost_type, ot.cost_amount, ot.cost_action,
+       ot.name as offense_type_name, ot.cost_amount, ot.cost_unit,
        tj.name as jar_name
 FROM offenses o
 INNER JOIN offense_types ot ON o.offense_type_id = ot.id
@@ -202,9 +196,8 @@ type ListPendingOffensesForUserRow struct {
 	CreatedAt       pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	OffenseTypeName string           `db:"offense_type_name" json:"offense_type_name"`
-	CostType        string           `db:"cost_type" json:"cost_type"`
 	CostAmount      pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
-	CostAction      pgtype.Text      `db:"cost_action" json:"cost_action"`
+	CostUnit        pgtype.Text      `db:"cost_unit" json:"cost_unit"`
 	JarName         string           `db:"jar_name" json:"jar_name"`
 }
 
@@ -229,9 +222,8 @@ func (q *Queries) ListPendingOffensesForUser(ctx context.Context, offenderID int
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.OffenseTypeName,
-			&i.CostType,
 			&i.CostAmount,
-			&i.CostAction,
+			&i.CostUnit,
 			&i.JarName,
 		); err != nil {
 			return nil, err

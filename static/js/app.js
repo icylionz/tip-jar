@@ -167,21 +167,12 @@ function offenseTypeFormData(jarID) {
     form: {
       name: '',
       description: '',
-      cost_type: 'monetary',
       cost_amount: '',
-      cost_action: ''
+      cost_unit: ''
     },
     error: null,
     loading: false,
     jarID: jarID,
-    
-    updateCostType() {
-      if (this.form.cost_type === 'monetary') {
-        this.form.cost_action = '';
-      } else {
-        this.form.cost_amount = '';
-      }
-    },
     
     async submitForm() {
       this.loading = true;
@@ -191,26 +182,16 @@ function offenseTypeFormData(jarID) {
         const formData = new FormData();
         formData.append('name', this.form.name);
         formData.append('description', this.form.description);
-        formData.append('cost_type', this.form.cost_type);
         
-        if (this.form.cost_type === 'monetary') {
-          if (!this.form.cost_amount) {
-            this.error = 'Cost amount is required for monetary offenses';
-            this.loading = false;
-            return;
-          }
+        if (this.form.cost_amount) {
           formData.append('cost_amount', this.form.cost_amount);
-        } else {
-          if (!this.form.cost_action) {
-            this.error = 'Cost action is required';
-            this.loading = false;
-            return;
-          }
-          formData.append('cost_action', this.form.cost_action);
+        }
+        
+        if (this.form.cost_unit) {
+          formData.append('cost_unit', this.form.cost_unit);
         }
         
         const url = `/jars/${this.jarID}/offense-types`;
-        console.log('Submitting to URL:', url);
         
         const response = await fetch(url, {
           method: 'POST',

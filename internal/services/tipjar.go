@@ -211,7 +211,6 @@ func (s *TipJarService) GetJarActivity(ctx context.Context, jarID int, limit int
 
 	return activities, nil
 }
-
 func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]models.MemberBalance, error) {
 	// Get all jar members
 	members, err := s.db.ListJarMembers(ctx, int32(jarID))
@@ -315,14 +314,17 @@ func (s *TipJarService) createDefaultOffenseType(ctx context.Context, jarID int3
 	descText = pgtype.Text{String: "A general offense for any rule breaking", Valid: true}
 
 	var costAmount pgtype.Numeric
-	costAmount = pgtype.Numeric{Int: big.NewInt(500), Exp: -2, Valid: true} // $5.00
+	costAmount = pgtype.Numeric{Int: big.NewInt(500), Exp: -2, Valid: true} // 5.00
+
+	var costUnit pgtype.Text
+	costUnit = pgtype.Text{String: "dollars", Valid: true}
 
 	params := sqlc.CreateOffenseTypeParams{
 		JarID:       jarID,
 		Name:        "General Offense",
 		Description: descText,
-		CostType:    "monetary",
 		CostAmount:  costAmount,
+		CostUnit:    costUnit,
 	}
 
 	_, err := s.db.CreateOffenseType(ctx, params)

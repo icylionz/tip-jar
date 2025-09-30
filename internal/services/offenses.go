@@ -61,7 +61,7 @@ func (s *OffenseService) GetOffenseTypesForJar(ctx context.Context, jarID int) (
 
 	result := make([]models.OffenseType, len(types))
 	for i, t := range types {
-		result[i] = *s.sqlcOffenseTypeToModel(t)
+		result[i] = s.rowToOffenseTypeModel(t.ID, t.JarID, t.Name, t.Description, t.CostAmount, t.CostUnit, t.IsActive, t.CreatedAt, t.UpdatedAt)
 	}
 
 	return result, nil
@@ -75,7 +75,7 @@ func (s *OffenseService) GetAllOffenseTypesForJar(ctx context.Context, jarID int
 
 	result := make([]models.OffenseType, len(types))
 	for i, t := range types {
-		result[i] = *s.sqlcOffenseTypeToModel(t)
+		result[i] = s.rowToOffenseTypeModel(t.ID, t.JarID, t.Name, t.Description, t.CostAmount, t.CostUnit, t.IsActive, t.CreatedAt, t.UpdatedAt)
 	}
 
 	return result, nil
@@ -90,10 +90,21 @@ func (s *OffenseService) GetOffenseType(ctx context.Context, offenseTypeID int) 
 		return nil, err
 	}
 
-	return s.sqlcOffenseTypeToModel(offenseType), nil
+	model := s.rowToOffenseTypeModel(
+		offenseType.ID,
+		offenseType.JarID,
+		offenseType.Name,
+		offenseType.Description,
+		offenseType.CostAmount,
+		offenseType.CostUnit,
+		offenseType.IsActive,
+		offenseType.CreatedAt,
+		offenseType.UpdatedAt,
+	)
+	return &model, nil
 }
 
-func (s *OffenseService) CreateOffenseType(ctx context.Context, jarID int, name, description, costType string, costAmount *float64, costAction *string) (*models.OffenseType, error) {
+func (s *OffenseService) CreateOffenseType(ctx context.Context, jarID int, name, description string, costAmount *float64, costUnit *string) (*models.OffenseType, error) {
 	var descText pgtype.Text
 	if description != "" {
 		descText = pgtype.Text{String: description, Valid: true}
@@ -109,18 +120,17 @@ func (s *OffenseService) CreateOffenseType(ctx context.Context, jarID int, name,
 		}
 	}
 
-	var costActionText pgtype.Text
-	if costAction != nil && *costAction != "" {
-		costActionText = pgtype.Text{String: *costAction, Valid: true}
+	var costUnitText pgtype.Text
+	if costUnit != nil && *costUnit != "" {
+		costUnitText = pgtype.Text{String: *costUnit, Valid: true}
 	}
 
 	params := sqlc.CreateOffenseTypeParams{
 		JarID:       int32(jarID),
 		Name:        name,
 		Description: descText,
-		CostType:    costType,
 		CostAmount:  costAmountNumeric,
-		CostAction:  costActionText,
+		CostUnit:    costUnitText,
 	}
 
 	offenseType, err := s.db.CreateOffenseType(ctx, params)
@@ -128,10 +138,21 @@ func (s *OffenseService) CreateOffenseType(ctx context.Context, jarID int, name,
 		return nil, err
 	}
 
-	return s.sqlcOffenseTypeToModel(offenseType), nil
+	model := s.rowToOffenseTypeModel(
+		offenseType.ID,
+		offenseType.JarID,
+		offenseType.Name,
+		offenseType.Description,
+		offenseType.CostAmount,
+		offenseType.CostUnit,
+		offenseType.IsActive,
+		offenseType.CreatedAt,
+		offenseType.UpdatedAt,
+	)
+	return &model, nil
 }
 
-func (s *OffenseService) UpdateOffenseType(ctx context.Context, offenseTypeID int, name, description, costType string, costAmount *float64, costAction *string) (*models.OffenseType, error) {
+func (s *OffenseService) UpdateOffenseType(ctx context.Context, offenseTypeID int, name, description string, costAmount *float64, costUnit *string) (*models.OffenseType, error) {
 	var descText pgtype.Text
 	if description != "" {
 		descText = pgtype.Text{String: description, Valid: true}
@@ -147,18 +168,17 @@ func (s *OffenseService) UpdateOffenseType(ctx context.Context, offenseTypeID in
 		}
 	}
 
-	var costActionText pgtype.Text
-	if costAction != nil && *costAction != "" {
-		costActionText = pgtype.Text{String: *costAction, Valid: true}
+	var costUnitText pgtype.Text
+	if costUnit != nil && *costUnit != "" {
+		costUnitText = pgtype.Text{String: *costUnit, Valid: true}
 	}
 
 	params := sqlc.UpdateOffenseTypeParams{
 		ID:          int32(offenseTypeID),
 		Name:        name,
 		Description: descText,
-		CostType:    costType,
 		CostAmount:  costAmountNumeric,
-		CostAction:  costActionText,
+		CostUnit:    costUnitText,
 	}
 
 	offenseType, err := s.db.UpdateOffenseType(ctx, params)
@@ -166,12 +186,66 @@ func (s *OffenseService) UpdateOffenseType(ctx context.Context, offenseTypeID in
 		return nil, err
 	}
 
-	return s.sqlcOffenseTypeToModel(offenseType), nil
+	model := s.rowToOffenseTypeModel(
+		offenseType.ID,
+		offenseType.JarID,
+		offenseType.Name,
+		offenseType.Description,
+		offenseType.CostAmount,
+		offenseType.CostUnit,
+		offenseType.IsActive,
+		offenseType.CreatedAt,
+		offenseType.UpdatedAt,
+	)
+	return &model, nil
 }
 
 func (s *OffenseService) DeactivateOffenseType(ctx context.Context, offenseTypeID int) error {
 	_, err := s.db.DeactivateOffenseType(ctx, int32(offenseTypeID))
 	return err
+}
+
+// Helper function to convert any offense type row to model
+func (s *OffenseService) rowToOffenseTypeModel(
+	id int32,
+	jarID int32,
+	name string,
+	description pgtype.Text,
+	costAmount pgtype.Numeric,
+	costUnit pgtype.Text,
+	isActive bool,
+	createdAt pgtype.Timestamp,
+	updatedAt pgtype.Timestamp,
+) models.OffenseType {
+	var desc *string
+	if description.Valid {
+		desc = &description.String
+	}
+
+	var amount *float64
+	if costAmount.Valid {
+		floatVal, _ := costAmount.Float64Value()
+		if floatVal.Valid {
+			amount = &floatVal.Float64
+		}
+	}
+
+	var unit *string
+	if costUnit.Valid {
+		unit = &costUnit.String
+	}
+
+	return models.OffenseType{
+		ID:          int(id),
+		JarID:       int(jarID),
+		Name:        name,
+		Description: desc,
+		CostAmount:  amount,
+		CostUnit:    unit,
+		IsActive:    isActive,
+		CreatedAt:   createdAt.Time,
+		UpdatedAt:   updatedAt.Time,
+	}
 }
 
 func (s *OffenseService) sqlcOffenseToModel(offense sqlc.Offense) *models.Offense {
@@ -199,38 +273,5 @@ func (s *OffenseService) sqlcOffenseToModel(offense sqlc.Offense) *models.Offens
 		Status:        offense.Status,
 		CreatedAt:     offense.CreatedAt.Time,
 		UpdatedAt:     offense.UpdatedAt.Time,
-	}
-}
-
-func (s *OffenseService) sqlcOffenseTypeToModel(offenseType sqlc.OffenseType) *models.OffenseType {
-	var description *string
-	if offenseType.Description.Valid {
-		description = &offenseType.Description.String
-	}
-
-	var costAmount *float64
-	if offenseType.CostAmount.Valid {
-		floatVal, _ := offenseType.CostAmount.Float64Value()
-		if floatVal.Valid {
-			costAmount = &floatVal.Float64
-		}
-	}
-
-	var costAction *string
-	if offenseType.CostAction.Valid {
-		costAction = &offenseType.CostAction.String
-	}
-
-	return &models.OffenseType{
-		ID:          int(offenseType.ID),
-		JarID:       int(offenseType.JarID),
-		Name:        offenseType.Name,
-		Description: description,
-		CostType:    offenseType.CostType,
-		CostAmount:  costAmount,
-		CostAction:  costAction,
-		IsActive:    offenseType.IsActive,
-		CreatedAt:   offenseType.CreatedAt.Time,
-		UpdatedAt:   offenseType.UpdatedAt.Time,
 	}
 }

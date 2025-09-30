@@ -12,38 +12,47 @@ import (
 )
 
 const createOffenseType = `-- name: CreateOffenseType :one
-INSERT INTO offense_types (jar_id, name, description, cost_type, cost_amount, cost_action)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, jar_id, name, description, cost_type, cost_amount, cost_action, is_active, created_at, updated_at
+INSERT INTO offense_types (jar_id, name, description, cost_amount, cost_unit)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 `
 
 type CreateOffenseTypeParams struct {
 	JarID       int32          `db:"jar_id" json:"jar_id"`
 	Name        string         `db:"name" json:"name"`
 	Description pgtype.Text    `db:"description" json:"description"`
-	CostType    string         `db:"cost_type" json:"cost_type"`
 	CostAmount  pgtype.Numeric `db:"cost_amount" json:"cost_amount"`
-	CostAction  pgtype.Text    `db:"cost_action" json:"cost_action"`
+	CostUnit    pgtype.Text    `db:"cost_unit" json:"cost_unit"`
 }
 
-func (q *Queries) CreateOffenseType(ctx context.Context, arg CreateOffenseTypeParams) (OffenseType, error) {
+type CreateOffenseTypeRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) CreateOffenseType(ctx context.Context, arg CreateOffenseTypeParams) (CreateOffenseTypeRow, error) {
 	row := q.db.QueryRow(ctx, createOffenseType,
 		arg.JarID,
 		arg.Name,
 		arg.Description,
-		arg.CostType,
 		arg.CostAmount,
-		arg.CostAction,
+		arg.CostUnit,
 	)
-	var i OffenseType
+	var i CreateOffenseTypeRow
 	err := row.Scan(
 		&i.ID,
 		&i.JarID,
 		&i.Name,
 		&i.Description,
-		&i.CostType,
 		&i.CostAmount,
-		&i.CostAction,
+		&i.CostUnit,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -55,20 +64,31 @@ const deactivateOffenseType = `-- name: DeactivateOffenseType :one
 UPDATE offense_types
 SET is_active = false, updated_at = NOW()
 WHERE id = $1
-RETURNING id, jar_id, name, description, cost_type, cost_amount, cost_action, is_active, created_at, updated_at
+RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 `
 
-func (q *Queries) DeactivateOffenseType(ctx context.Context, id int32) (OffenseType, error) {
+type DeactivateOffenseTypeRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) DeactivateOffenseType(ctx context.Context, id int32) (DeactivateOffenseTypeRow, error) {
 	row := q.db.QueryRow(ctx, deactivateOffenseType, id)
-	var i OffenseType
+	var i DeactivateOffenseTypeRow
 	err := row.Scan(
 		&i.ID,
 		&i.JarID,
 		&i.Name,
 		&i.Description,
-		&i.CostType,
 		&i.CostAmount,
-		&i.CostAction,
+		&i.CostUnit,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -77,22 +97,33 @@ func (q *Queries) DeactivateOffenseType(ctx context.Context, id int32) (OffenseT
 }
 
 const getOffenseType = `-- name: GetOffenseType :one
-SELECT id, jar_id, name, description, cost_type, cost_amount, cost_action, is_active, created_at, updated_at
+SELECT id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 FROM offense_types
 WHERE id = $1
 `
 
-func (q *Queries) GetOffenseType(ctx context.Context, id int32) (OffenseType, error) {
+type GetOffenseTypeRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) GetOffenseType(ctx context.Context, id int32) (GetOffenseTypeRow, error) {
 	row := q.db.QueryRow(ctx, getOffenseType, id)
-	var i OffenseType
+	var i GetOffenseTypeRow
 	err := row.Scan(
 		&i.ID,
 		&i.JarID,
 		&i.Name,
 		&i.Description,
-		&i.CostType,
 		&i.CostAmount,
-		&i.CostAction,
+		&i.CostUnit,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -101,29 +132,40 @@ func (q *Queries) GetOffenseType(ctx context.Context, id int32) (OffenseType, er
 }
 
 const listAllOffenseTypesForJar = `-- name: ListAllOffenseTypesForJar :many
-SELECT id, jar_id, name, description, cost_type, cost_amount, cost_action, is_active, created_at, updated_at
+SELECT id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 FROM offense_types
 WHERE jar_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListAllOffenseTypesForJar(ctx context.Context, jarID int32) ([]OffenseType, error) {
+type ListAllOffenseTypesForJarRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) ListAllOffenseTypesForJar(ctx context.Context, jarID int32) ([]ListAllOffenseTypesForJarRow, error) {
 	rows, err := q.db.Query(ctx, listAllOffenseTypesForJar, jarID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []OffenseType
+	var items []ListAllOffenseTypesForJarRow
 	for rows.Next() {
-		var i OffenseType
+		var i ListAllOffenseTypesForJarRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.JarID,
 			&i.Name,
 			&i.Description,
-			&i.CostType,
 			&i.CostAmount,
-			&i.CostAction,
+			&i.CostUnit,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -139,29 +181,40 @@ func (q *Queries) ListAllOffenseTypesForJar(ctx context.Context, jarID int32) ([
 }
 
 const listOffenseTypesForJar = `-- name: ListOffenseTypesForJar :many
-SELECT id, jar_id, name, description, cost_type, cost_amount, cost_action, is_active, created_at, updated_at
+SELECT id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 FROM offense_types
 WHERE jar_id = $1 AND is_active = true
 ORDER BY name ASC
 `
 
-func (q *Queries) ListOffenseTypesForJar(ctx context.Context, jarID int32) ([]OffenseType, error) {
+type ListOffenseTypesForJarRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) ListOffenseTypesForJar(ctx context.Context, jarID int32) ([]ListOffenseTypesForJarRow, error) {
 	rows, err := q.db.Query(ctx, listOffenseTypesForJar, jarID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []OffenseType
+	var items []ListOffenseTypesForJarRow
 	for rows.Next() {
-		var i OffenseType
+		var i ListOffenseTypesForJarRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.JarID,
 			&i.Name,
 			&i.Description,
-			&i.CostType,
 			&i.CostAmount,
-			&i.CostAction,
+			&i.CostUnit,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -178,38 +231,47 @@ func (q *Queries) ListOffenseTypesForJar(ctx context.Context, jarID int32) ([]Of
 
 const updateOffenseType = `-- name: UpdateOffenseType :one
 UPDATE offense_types
-SET name = $2, description = $3, cost_type = $4, cost_amount = $5, cost_action = $6, updated_at = NOW()
+SET name = $2, description = $3, cost_amount = $4, cost_unit = $5, updated_at = NOW()
 WHERE id = $1
-RETURNING id, jar_id, name, description, cost_type, cost_amount, cost_action, is_active, created_at, updated_at
+RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 `
 
 type UpdateOffenseTypeParams struct {
 	ID          int32          `db:"id" json:"id"`
 	Name        string         `db:"name" json:"name"`
 	Description pgtype.Text    `db:"description" json:"description"`
-	CostType    string         `db:"cost_type" json:"cost_type"`
 	CostAmount  pgtype.Numeric `db:"cost_amount" json:"cost_amount"`
-	CostAction  pgtype.Text    `db:"cost_action" json:"cost_action"`
+	CostUnit    pgtype.Text    `db:"cost_unit" json:"cost_unit"`
 }
 
-func (q *Queries) UpdateOffenseType(ctx context.Context, arg UpdateOffenseTypeParams) (OffenseType, error) {
+type UpdateOffenseTypeRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) UpdateOffenseType(ctx context.Context, arg UpdateOffenseTypeParams) (UpdateOffenseTypeRow, error) {
 	row := q.db.QueryRow(ctx, updateOffenseType,
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.CostType,
 		arg.CostAmount,
-		arg.CostAction,
+		arg.CostUnit,
 	)
-	var i OffenseType
+	var i UpdateOffenseTypeRow
 	err := row.Scan(
 		&i.ID,
 		&i.JarID,
 		&i.Name,
 		&i.Description,
-		&i.CostType,
 		&i.CostAmount,
-		&i.CostAction,
+		&i.CostUnit,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,

@@ -239,7 +239,137 @@ func (h *Handlers) handleDashboard(c echo.Context) error {
 
 	return h.renderTemplate(c, templates.Dashboard(user, jars))
 }
+func (h *Handlers) handleCreateOffenseType(c echo.Context) error {
+	user := h.getCurrentUser(c)
 
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
+	if err != nil || !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Only admins can create offense types")
+	}
+
+	name := strings.TrimSpace(c.FormValue("name"))
+	description := strings.TrimSpace(c.FormValue("description"))
+	costAmountStr := strings.TrimSpace(c.FormValue("cost_amount"))
+	costUnit := strings.TrimSpace(c.FormValue("cost_unit"))
+
+	if name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Offense name is required")
+	}
+
+	var costAmount *float64
+	if costAmountStr != "" {
+		amount, err := strconv.ParseFloat(costAmountStr, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid cost amount")
+		}
+		if amount < 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount cannot be negative")
+		}
+		costAmount = &amount
+	}
+
+	var costUnitPtr *string
+	if costUnit != "" {
+		costUnitPtr = &costUnit
+	}
+
+	_, err = h.offenseService.CreateOffenseType(
+		c.Request().Context(),
+		jarID,
+		name,
+		description,
+		costAmount,
+		costUnitPtr,
+	)
+	if err != nil {
+		c.Logger().Error("Failed to create offense type", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create offense type")
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+	})
+}
+
+func (h *Handlers) handleUpdateOffenseType(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	jarIDStr := c.Param("id")
+	jarID, err := strconv.Atoi(jarIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
+	}
+
+	offenseTypeIDStr := c.Param("offense_type_id")
+	offenseTypeID, err := strconv.Atoi(offenseTypeIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid offense type ID")
+	}
+
+	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
+	if err != nil || !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Only admins can update offense types")
+	}
+
+	offenseType, err := h.offenseService.GetOffenseType(c.Request().Context(), offenseTypeID)
+	if err != nil {
+		c.Logger().Error("Failed to get offense type", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify offense type")
+	}
+
+	if offenseType == nil || offenseType.JarID != jarID {
+		return echo.NewHTTPError(http.StatusNotFound, "Offense type not found")
+	}
+
+	name := strings.TrimSpace(c.FormValue("name"))
+	description := strings.TrimSpace(c.FormValue("description"))
+	costAmountStr := strings.TrimSpace(c.FormValue("cost_amount"))
+	costUnit := strings.TrimSpace(c.FormValue("cost_unit"))
+
+	if name == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Offense name is required")
+	}
+
+	var costAmount *float64
+	if costAmountStr != "" {
+		amount, err := strconv.ParseFloat(costAmountStr, 64)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid cost amount")
+		}
+		if amount < 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount cannot be negative")
+		}
+		costAmount = &amount
+	}
+
+	var costUnitPtr *string
+	if costUnit != "" {
+		costUnitPtr = &costUnit
+	}
+
+	_, err = h.offenseService.UpdateOffenseType(
+		c.Request().Context(),
+		offenseTypeID,
+		name,
+		description,
+		costAmount,
+		costUnitPtr,
+	)
+	if err != nil {
+		c.Logger().Error("Failed to update offense type", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update offense type")
+	}
+
+	c.Logger().Info("Offense type updated successfully", "offense_type_id", offenseTypeID, "jar_id", jarID)
+
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/jars/%d/settings", jarID))
+}
 func (h *Handlers) handleCreateJarForm(c echo.Context) error {
 	user := h.getCurrentUser(c)
 	return h.renderTemplate(c, templates.CreateJar(user))
@@ -734,77 +864,6 @@ func (h *Handlers) handleUpdateJarSettings(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/jars/%d/settings", jarID))
 }
 
-func (h *Handlers) handleCreateOffenseType(c echo.Context) error {
-	user := h.getCurrentUser(c)
-
-	// Parse jar ID
-	jarIDStr := c.Param("id")
-	jarID, err := strconv.Atoi(jarIDStr)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
-	}
-
-	// Check if user is admin
-	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
-	if err != nil || !isAdmin {
-		return echo.NewHTTPError(http.StatusForbidden, "Only admins can create offense types")
-	}
-
-	name := strings.TrimSpace(c.FormValue("name"))
-	description := strings.TrimSpace(c.FormValue("description"))
-	costType := strings.TrimSpace(c.FormValue("cost_type"))
-	costAmountStr := strings.TrimSpace(c.FormValue("cost_amount"))
-	costAction := strings.TrimSpace(c.FormValue("cost_action"))
-
-	if name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Offense name is required")
-	}
-
-	if costType == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Cost type is required")
-	}
-
-	var costAmount *float64
-	if costType == "monetary" {
-		if costAmountStr == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount is required for monetary offenses")
-		}
-		amount, err := strconv.ParseFloat(costAmountStr, 64)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "Invalid cost amount")
-		}
-		if amount < 0 {
-			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount cannot be negative")
-		}
-		costAmount = &amount
-	}
-
-	var costActionPtr *string
-	if costType != "monetary" {
-		if costAction == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Cost action is required for %s offenses", costType))
-		}
-		costActionPtr = &costAction
-	}
-
-	_, err = h.offenseService.CreateOffenseType(
-		c.Request().Context(),
-		jarID,
-		name,
-		description,
-		costType,
-		costAmount,
-		costActionPtr,
-	)
-	if err != nil {
-		c.Logger().Error("Failed to create offense type", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create offense type")
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
-	})
-}
 
 func (h *Handlers) handleDeactivateOffenseType(c echo.Context) error {
 	user := h.getCurrentUser(c)
@@ -892,93 +951,4 @@ func (h *Handlers) handleEditOffenseTypeForm(c echo.Context) error {
 	}
 
 	return h.renderTemplate(c, templates.EditOffenseType(user, jar, offenseType))
-}
-
-func (h *Handlers) handleUpdateOffenseType(c echo.Context) error {
-	user := h.getCurrentUser(c)
-
-	// Parse IDs
-	jarIDStr := c.Param("id")
-	jarID, err := strconv.Atoi(jarIDStr)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid jar ID")
-	}
-
-	offenseTypeIDStr := c.Param("offense_type_id")
-	offenseTypeID, err := strconv.Atoi(offenseTypeIDStr)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid offense type ID")
-	}
-
-	// Check if user is admin
-	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
-	if err != nil || !isAdmin {
-		return echo.NewHTTPError(http.StatusForbidden, "Only admins can update offense types")
-	}
-
-	// Verify the offense type belongs to this jar
-	offenseType, err := h.offenseService.GetOffenseType(c.Request().Context(), offenseTypeID)
-	if err != nil {
-		c.Logger().Error("Failed to get offense type", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to verify offense type")
-	}
-
-	if offenseType == nil || offenseType.JarID != jarID {
-		return echo.NewHTTPError(http.StatusNotFound, "Offense type not found")
-	}
-
-	name := strings.TrimSpace(c.FormValue("name"))
-	description := strings.TrimSpace(c.FormValue("description"))
-	costType := strings.TrimSpace(c.FormValue("cost_type"))
-	costAmountStr := strings.TrimSpace(c.FormValue("cost_amount"))
-	costAction := strings.TrimSpace(c.FormValue("cost_action"))
-
-	if name == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Offense name is required")
-	}
-
-	if costType == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Cost type is required")
-	}
-
-	var costAmount *float64
-	if costType == "monetary" {
-		if costAmountStr == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount is required for monetary offenses")
-		}
-		amount, err := strconv.ParseFloat(costAmountStr, 64)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "Invalid cost amount")
-		}
-		if amount < 0 {
-			return echo.NewHTTPError(http.StatusBadRequest, "Cost amount cannot be negative")
-		}
-		costAmount = &amount
-	}
-
-	var costActionPtr *string
-	if costType != "monetary" {
-		if costAction == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Cost action is required for %s offenses", costType))
-		}
-		costActionPtr = &costAction
-	}
-
-	_, err = h.offenseService.UpdateOffenseType(
-		c.Request().Context(),
-		offenseTypeID,
-		name,
-		description,
-		costType,
-		costAmount,
-		costActionPtr,
-	)
-	if err != nil {
-		c.Logger().Error("Failed to update offense type", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update offense type")
-	}
-
-	c.Logger().Info("Offense type updated successfully", "offense_type_id", offenseTypeID, "jar_id", jarID)
-
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/jars/%d/settings", jarID))
 }

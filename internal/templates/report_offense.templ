@@ -11,18 +11,21 @@ templ ReportOffense(user *models.User, jar *models.TipJar, members []models.JarM
 				<h1 class="text-3xl font-bold text-gray-900">Report an Offense</h1>
 				<p class="text-gray-600 mt-2">Someone broke the rules? Let's get it on the record.</p>
 			</div>
-
 			<!-- Report Form -->
-			<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8" 
-			     x-data="reportOffenseForm()">
+			<div
+				class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8"
+				x-data="reportOffenseForm()"
+			>
 				<form @submit.prevent="submitForm" class="space-y-6">
 					<!-- Offender Selection -->
 					<div>
 						<label class="form-label">Offender</label>
-						<select x-model="form.offender_id"
-						        name="offender_id"
-						        class="form-input"
-						        required>
+						<select
+							x-model="form.offender_id"
+							name="offender_id"
+							class="form-input"
+							required
+						>
 							<option value="">Select an offender</option>
 							for _, member := range members {
 								if member.UserID != user.ID {
@@ -31,78 +34,72 @@ templ ReportOffense(user *models.User, jar *models.TipJar, members []models.JarM
 							}
 						</select>
 					</div>
-
 					<!-- Offense Type Selection -->
 					<div>
 						<label class="form-label">Offense Type</label>
-						<select x-model="form.offense_type_id"
-						        @change="updateCost"
-						        name="offense_type_id"
-						        class="form-input"
-						        required>
+						<select
+							x-model="form.offense_type_id"
+							@change="updateCost"
+							name="offense_type_id"
+							class="form-input"
+							required
+						>
 							<option value="">Select an offense</option>
 							for _, offenseType := range offenseTypes {
-								<option 
+								<option
 									value={ fmt.Sprintf("%d", offenseType.ID) }
-									data-cost-type={ offenseType.CostType }
 									data-cost-amount={ fmt.Sprintf("%.2f", ptrFloat64ToFloat(offenseType.CostAmount)) }
-									data-cost-action={ ptrStringToString(offenseType.CostAction) }>
+									data-cost-unit={ ptrStringToString(offenseType.CostUnit) }
+								>
 									{ offenseType.Name }
 								</option>
 							}
 						</select>
-						
 						<!-- Show cost info -->
-						<div x-show="selectedCostType" class="mt-2 text-sm text-gray-600">
-							<span x-show="selectedCostType === 'monetary'">
-								Cost: <span class="font-semibold" x-text="'$' + selectedCostAmount"></span>
-							</span>
-							<span x-show="selectedCostType === 'action'">
-								Action: <span class="font-semibold" x-text="selectedCostAction"></span>
-							</span>
-							<span x-show="selectedCostType === 'item'">
-								Item: <span class="font-semibold" x-text="selectedCostAction"></span>
-							</span>
-							<span x-show="selectedCostType === 'service'">
-								Service: <span class="font-semibold" x-text="selectedCostAction"></span>
+						<div x-show="selectedCostAmount || selectedCostUnit" class="mt-2 text-sm text-gray-600">
+							<span class="font-semibold">
+								Cost: <span x-text="selectedCostAmount"></span> <span x-text="selectedCostUnit"></span>
 							</span>
 						</div>
 					</div>
-
 					<!-- Notes -->
 					<div>
 						<label class="form-label">Notes</label>
-						<textarea x-model="form.notes"
-						          name="notes"
-						          rows="4"
-						          placeholder="Add any details... the more incriminating, the better!"
-						          class="form-input resize-none"></textarea>
+						<textarea
+							x-model="form.notes"
+							name="notes"
+							rows="4"
+							placeholder="Add any details... the more incriminating, the better!"
+							class="form-input resize-none"
+						></textarea>
 					</div>
-
 					<!-- Override Cost (Optional) -->
 					<div x-show="selectedCostType === 'monetary'">
 						<label class="form-label">Override Cost (Optional)</label>
 						<div class="relative">
 							<span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-							<input type="number" 
-							       x-model="form.cost_override"
-							       name="cost_override"
-							       step="0.01"
-							       min="0"
-							       placeholder="e.g. 5.00"
-							       class="form-input pl-8">
+							<input
+								type="number"
+								x-model="form.cost_override"
+								name="cost_override"
+								step="0.01"
+								min="0"
+								placeholder="e.g. 5.00"
+								class="form-input pl-8"
+							/>
 						</div>
 						<p class="text-sm text-gray-500 mt-1">
 							Leave blank to use default cost
 						</p>
 					</div>
-
 					<!-- Error Message -->
-					<div x-show="error" 
-					     x-transition:enter="transition ease-out duration-200"
-					     x-transition:enter-start="opacity-0"
-					     x-transition:enter-end="opacity-100"
-					     class="bg-red-50 border border-red-200 rounded-xl p-4">
+					<div
+						x-show="error"
+						x-transition:enter="transition ease-out duration-200"
+						x-transition:enter-start="opacity-0"
+						x-transition:enter-end="opacity-100"
+						class="bg-red-50 border border-red-200 rounded-xl p-4"
+					>
 						<div class="flex items-center">
 							<svg class="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -110,17 +107,20 @@ templ ReportOffense(user *models.User, jar *models.TipJar, members []models.JarM
 							<p class="text-red-800 text-sm" x-text="error"></p>
 						</div>
 					</div>
-
 					<!-- Submit Button -->
 					<div class="flex justify-center space-x-4">
-						<a href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) } 
-						   class="btn btn-secondary px-8 py-3">
+						<a
+							href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) }
+							class="btn btn-secondary px-8 py-3"
+						>
 							Cancel
 						</a>
-						<button type="submit" 
-						        :disabled="loading || !canSubmit"
-						        :class="canSubmit && !loading ? 'btn-primary' : 'btn-primary opacity-50 cursor-not-allowed'"
-						        class="btn px-8 py-3">
+						<button
+							type="submit"
+							:disabled="loading || !canSubmit"
+							:class="canSubmit && !loading ? 'btn-primary' : 'btn-primary opacity-50 cursor-not-allowed'"
+							class="btn px-8 py-3"
+						>
 							<span x-show="!loading" class="flex items-center">
 								<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -136,40 +136,36 @@ templ ReportOffense(user *models.User, jar *models.TipJar, members []models.JarM
 				</form>
 			</div>
 		</div>
-
 		<script>
-			function reportOffenseForm() {
-				return {
-					form: {
-						offender_id: '',
-						offense_type_id: '',
-						notes: '',
-						cost_override: ''
-					},
-					selectedCostType: '',
-					selectedCostAmount: '',
-					selectedCostAction: '',
-					error: null,
-					loading: false,
-					
-					get canSubmit() {
-						return this.form.offender_id && this.form.offense_type_id;
-					},
-					
-					updateCost() {
-						const select = document.querySelector('select[name="offense_type_id"]');
-						const option = select.selectedOptions[0];
-						
-						if (option && option.value) {
-							this.selectedCostType = option.dataset.costType;
-							this.selectedCostAmount = option.dataset.costAmount;
-							this.selectedCostAction = option.dataset.costAction;
-						} else {
-							this.selectedCostType = '';
-							this.selectedCostAmount = '';
-							this.selectedCostAction = '';
-						}
-					},
+		function reportOffenseForm() {
+		return {
+			form: {
+				offender_id: '',
+				offense_type_id: '',
+				notes: '',
+				cost_override: ''
+			},
+			selectedCostAmount: '',
+			selectedCostUnit: '',
+			error: null,
+			loading: false,
+			
+			get canSubmit() {
+				return this.form.offender_id && this.form.offense_type_id;
+			},
+			
+			updateCost() {
+				const select = document.querySelector('select[name="offense_type_id"]');
+				const option = select.selectedOptions[0];
+				
+				if (option && option.value) {
+					this.selectedCostAmount = option.dataset.costAmount;
+					this.selectedCostUnit = option.dataset.costUnit;
+				} else {
+					this.selectedCostAmount = '';
+					this.selectedCostUnit = '';
+				}
+			},	
 					
 					async submitForm() {
 						if (!this.canSubmit || this.loading) return;
