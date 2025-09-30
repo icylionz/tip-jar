@@ -23,6 +23,10 @@ type TipJar struct {
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
+type DashboardJar struct {
+	*TipJar
+	MemberCount int `json:"member_count"`
+}
 
 type JarMembership struct {
 	ID       int       `json:"id" db:"id"`

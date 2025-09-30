@@ -446,3 +446,35 @@ func (s *TipJarService) UpdateTipJar(ctx context.Context, jarID int, name, descr
 	_, err := s.db.UpdateTipJar(ctx, params)
 	return err
 }
+
+func (s *TipJarService) ListTipJarsForUserWithMemberCount(ctx context.Context, userID int) ([]*models.DashboardJar, error) {
+	jarsWithCounts, err := s.db.ListTipJarsForUserWithMemberCount(ctx, int32(userID))
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*models.DashboardJar, len(jarsWithCounts))
+	for i, jarWithCount := range jarsWithCounts {
+		var description *string
+		if jarWithCount.Description.Valid {
+			description = &jarWithCount.Description.String
+		}
+
+		tipJar := &models.TipJar{
+			ID:          int(jarWithCount.ID),
+			Name:        jarWithCount.Name,
+			Description: description,
+			InviteCode:  jarWithCount.InviteCode,
+			CreatedBy:   int(jarWithCount.CreatedBy),
+			CreatedAt:   jarWithCount.CreatedAt.Time,
+			UpdatedAt:   jarWithCount.UpdatedAt.Time,
+		}
+
+		result[i] = &models.DashboardJar{
+			TipJar:      tipJar,
+			MemberCount: int(jarWithCount.MemberCount),
+		}
+	}
+
+	return result, nil
+}

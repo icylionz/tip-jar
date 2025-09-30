@@ -132,6 +132,60 @@ func (q *Queries) ListTipJarsForUser(ctx context.Context, userID int32) ([]TipJa
 	return items, nil
 }
 
+const listTipJarsForUserWithMemberCount = `-- name: ListTipJarsForUserWithMemberCount :many
+SELECT tj.id, tj.name, tj.description, tj.invite_code, tj.created_by, tj.created_at, tj.updated_at,
+       member_counts.member_count
+FROM tip_jars tj
+INNER JOIN jar_memberships jm ON tj.id = jm.jar_id
+INNER JOIN (
+    SELECT jar_id, COUNT(*) as member_count
+    FROM jar_memberships
+    GROUP BY jar_id
+) member_counts ON tj.id = member_counts.jar_id
+WHERE jm.user_id = $1
+ORDER BY tj.created_at DESC
+`
+
+type ListTipJarsForUserWithMemberCountRow struct {
+	ID          int32            `db:"id" json:"id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	InviteCode  string           `db:"invite_code" json:"invite_code"`
+	CreatedBy   int32            `db:"created_by" json:"created_by"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	MemberCount int64            `db:"member_count" json:"member_count"`
+}
+
+func (q *Queries) ListTipJarsForUserWithMemberCount(ctx context.Context, userID int32) ([]ListTipJarsForUserWithMemberCountRow, error) {
+	rows, err := q.db.Query(ctx, listTipJarsForUserWithMemberCount, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTipJarsForUserWithMemberCountRow
+	for rows.Next() {
+		var i ListTipJarsForUserWithMemberCountRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.InviteCode,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.MemberCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateTipJar = `-- name: UpdateTipJar :one
 UPDATE tip_jars
 SET name = $2, description = $3, updated_at = NOW()

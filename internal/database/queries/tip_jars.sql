@@ -29,3 +29,16 @@ RETURNING id, name, description, invite_code, created_by, created_at, updated_at
 -- name: DeleteTipJar :exec
 DELETE FROM tip_jars
 WHERE id = $1;
+
+-- name: ListTipJarsForUserWithMemberCount :many
+SELECT tj.id, tj.name, tj.description, tj.invite_code, tj.created_by, tj.created_at, tj.updated_at,
+       member_counts.member_count
+FROM tip_jars tj
+INNER JOIN jar_memberships jm ON tj.id = jm.jar_id
+INNER JOIN (
+    SELECT jar_id, COUNT(*) as member_count
+    FROM jar_memberships
+    GROUP BY jar_id
+) member_counts ON tj.id = member_counts.jar_id
+WHERE jm.user_id = $1
+ORDER BY tj.created_at DESC;

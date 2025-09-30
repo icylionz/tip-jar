@@ -39,6 +39,7 @@ type Querier interface {
 	ListPaymentsForUser(ctx context.Context, arg ListPaymentsForUserParams) ([]ListPaymentsForUserRow, error)
 	ListPendingOffensesForUser(ctx context.Context, offenderID int32) ([]ListPendingOffensesForUserRow, error)
 	ListTipJarsForUser(ctx context.Context, userID int32) ([]TipJar, error)
+	ListTipJarsForUserWithMemberCount(ctx context.Context, userID int32) ([]ListTipJarsForUserWithMemberCountRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (JarMembership, error)
 	UpdateOffenseStatus(ctx context.Context, arg UpdateOffenseStatusParams) (Offense, error)

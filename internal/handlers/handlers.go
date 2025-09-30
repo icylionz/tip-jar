@@ -231,8 +231,8 @@ func (h *Handlers) handleLogout(c echo.Context) error {
 func (h *Handlers) handleDashboard(c echo.Context) error {
 	user := h.getCurrentUser(c)
 
-	// Get user's tip jars
-	jars, err := h.tipJarService.ListTipJarsForUser(c.Request().Context(), user.ID)
+	// Get user's tip jars with member counts
+	jars, err := h.tipJarService.ListTipJarsForUserWithMemberCount(c.Request().Context(), user.ID)
 	if err != nil {
 		c.Logger().Error("Failed to load user's tip jars", "error", err, "user_id", user.ID)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load tip jars")
@@ -240,6 +240,7 @@ func (h *Handlers) handleDashboard(c echo.Context) error {
 
 	return h.renderTemplate(c, templates.Dashboard(user, jars))
 }
+
 func (h *Handlers) handleCreateOffenseType(c echo.Context) error {
 	user := h.getCurrentUser(c)
 
