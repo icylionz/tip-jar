@@ -47,3 +47,41 @@ SELECT
 FROM offenses o
 INNER JOIN offense_types ot ON o.offense_type_id = ot.id
 WHERE o.jar_id = $1 AND o.offender_id = $2 AND o.status = 'pending';
+
+-- name: GetUserBalancesByUnitInJar :many
+SELECT 
+    COALESCE(ot.cost_unit, 'items') as unit,
+    COALESCE(SUM(
+        CASE 
+            WHEN o.cost_override IS NOT NULL THEN o.cost_override
+            ELSE ot.cost_amount
+        END
+    ), 0) as total_owed,
+    COUNT(*) as offense_count
+FROM offenses o
+INNER JOIN offense_types ot ON o.offense_type_id = ot.id
+WHERE o.jar_id = $1 AND o.offender_id = $2 AND o.status = 'pending'
+GROUP BY ot.cost_unit
+ORDER BY total_owed DESC;
+
+-- name: GetJarBalancesByUnit :many
+SELECT 
+    u.id as user_id,
+    u.name as user_name,
+    u.avatar,
+    COALESCE(ot.cost_unit, 'items') as unit,
+    COALESCE(SUM(
+        CASE 
+            WHEN o.cost_override IS NOT NULL THEN o.cost_override
+            ELSE ot.cost_amount
+        END
+    ), 0) as total_owed,
+    COUNT(*) as offense_count
+FROM users u
+INNER JOIN jar_memberships jm ON u.id = jm.user_id
+LEFT JOIN offenses o ON u.id = o.offender_id AND o.jar_id = $1 AND o.status = 'pending'
+LEFT JOIN offense_types ot ON o.offense_type_id = ot.id
+WHERE jm.jar_id = $1
+GROUP BY u.id, u.name, u.avatar, ot.cost_unit
+HAVING COUNT(o.id) > 0 OR ot.cost_unit IS NULL
+ORDER BY u.name, total_owed DESC;

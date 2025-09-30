@@ -77,6 +77,7 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	api.Use(h.requireAuth)
 	api.GET("/user", h.handleGetUser)
 	api.GET("/jars", h.handleAPIListJars)
+	api.GET("/jars/lookup", h.handleLookupJar)
 }
 
 func (h *Handlers) setupStaticFiles(e *echo.Echo) {
@@ -562,12 +563,12 @@ func (h *Handlers) handleViewJar(c echo.Context) error {
 		activities = []models.JarActivity{}
 	}
 
-	// Get member balances
-	balances, err := h.tipJarService.GetMemberBalances(c.Request().Context(), jarID)
+	// Get member balances by unit - USE NEW METHOD
+	balances, err := h.tipJarService.GetMemberBalancesByUnit(c.Request().Context(), jarID)
 	if err != nil {
 		c.Logger().Error("Failed to get member balances", "error", err)
 		// Don't fail the whole page, just log the error
-		balances = []models.MemberBalance{}
+		balances = []models.MemberBalanceSummary{}
 	}
 
 	return h.renderTemplate(c, templates.ViewJar(user, jar, members, activities, balances, isAdmin))

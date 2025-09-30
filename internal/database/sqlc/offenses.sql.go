@@ -51,6 +51,65 @@ func (q *Queries) CreateOffense(ctx context.Context, arg CreateOffenseParams) (O
 	return i, err
 }
 
+const getJarBalancesByUnit = `-- name: GetJarBalancesByUnit :many
+SELECT 
+    u.id as user_id,
+    u.name as user_name,
+    u.avatar,
+    COALESCE(ot.cost_unit, 'items') as unit,
+    COALESCE(SUM(
+        CASE 
+            WHEN o.cost_override IS NOT NULL THEN o.cost_override
+            ELSE ot.cost_amount
+        END
+    ), 0) as total_owed,
+    COUNT(*) as offense_count
+FROM users u
+INNER JOIN jar_memberships jm ON u.id = jm.user_id
+LEFT JOIN offenses o ON u.id = o.offender_id AND o.jar_id = $1 AND o.status = 'pending'
+LEFT JOIN offense_types ot ON o.offense_type_id = ot.id
+WHERE jm.jar_id = $1
+GROUP BY u.id, u.name, u.avatar, ot.cost_unit
+HAVING COUNT(o.id) > 0 OR ot.cost_unit IS NULL
+ORDER BY u.name, total_owed DESC
+`
+
+type GetJarBalancesByUnitRow struct {
+	UserID       int32       `db:"user_id" json:"user_id"`
+	UserName     string      `db:"user_name" json:"user_name"`
+	Avatar       pgtype.Text `db:"avatar" json:"avatar"`
+	Unit         string      `db:"unit" json:"unit"`
+	TotalOwed    interface{} `db:"total_owed" json:"total_owed"`
+	OffenseCount int64       `db:"offense_count" json:"offense_count"`
+}
+
+func (q *Queries) GetJarBalancesByUnit(ctx context.Context, jarID int32) ([]GetJarBalancesByUnitRow, error) {
+	rows, err := q.db.Query(ctx, getJarBalancesByUnit, jarID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetJarBalancesByUnitRow
+	for rows.Next() {
+		var i GetJarBalancesByUnitRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.UserName,
+			&i.Avatar,
+			&i.Unit,
+			&i.TotalOwed,
+			&i.OffenseCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOffense = `-- name: GetOffense :one
 SELECT id, jar_id, offense_type_id, reporter_id, offender_id, notes, cost_override, status, created_at, updated_at
 FROM offenses
@@ -98,6 +157,54 @@ func (q *Queries) GetUserBalanceInJar(ctx context.Context, arg GetUserBalanceInJ
 	var total_owed interface{}
 	err := row.Scan(&total_owed)
 	return total_owed, err
+}
+
+const getUserBalancesByUnitInJar = `-- name: GetUserBalancesByUnitInJar :many
+SELECT 
+    COALESCE(ot.cost_unit, 'items') as unit,
+    COALESCE(SUM(
+        CASE 
+            WHEN o.cost_override IS NOT NULL THEN o.cost_override
+            ELSE ot.cost_amount
+        END
+    ), 0) as total_owed,
+    COUNT(*) as offense_count
+FROM offenses o
+INNER JOIN offense_types ot ON o.offense_type_id = ot.id
+WHERE o.jar_id = $1 AND o.offender_id = $2 AND o.status = 'pending'
+GROUP BY ot.cost_unit
+ORDER BY total_owed DESC
+`
+
+type GetUserBalancesByUnitInJarParams struct {
+	JarID      int32 `db:"jar_id" json:"jar_id"`
+	OffenderID int32 `db:"offender_id" json:"offender_id"`
+}
+
+type GetUserBalancesByUnitInJarRow struct {
+	Unit         string      `db:"unit" json:"unit"`
+	TotalOwed    interface{} `db:"total_owed" json:"total_owed"`
+	OffenseCount int64       `db:"offense_count" json:"offense_count"`
+}
+
+func (q *Queries) GetUserBalancesByUnitInJar(ctx context.Context, arg GetUserBalancesByUnitInJarParams) ([]GetUserBalancesByUnitInJarRow, error) {
+	rows, err := q.db.Query(ctx, getUserBalancesByUnitInJar, arg.JarID, arg.OffenderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserBalancesByUnitInJarRow
+	for rows.Next() {
+		var i GetUserBalancesByUnitInJarRow
+		if err := rows.Scan(&i.Unit, &i.TotalOwed, &i.OffenseCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listOffensesForJar = `-- name: ListOffensesForJar :many

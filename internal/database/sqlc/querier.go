@@ -18,6 +18,7 @@ type Querier interface {
 	DeactivateOffenseType(ctx context.Context, id int32) (DeactivateOffenseTypeRow, error)
 	DeleteJarMembership(ctx context.Context, arg DeleteJarMembershipParams) error
 	DeleteTipJar(ctx context.Context, id int32) error
+	GetJarBalancesByUnit(ctx context.Context, jarID int32) ([]GetJarBalancesByUnitRow, error)
 	GetJarMembership(ctx context.Context, arg GetJarMembershipParams) (JarMembership, error)
 	GetOffense(ctx context.Context, id int32) (Offense, error)
 	GetOffenseType(ctx context.Context, id int32) (GetOffenseTypeRow, error)
@@ -25,6 +26,7 @@ type Querier interface {
 	GetTipJar(ctx context.Context, id int32) (TipJar, error)
 	GetTipJarByInviteCode(ctx context.Context, inviteCode string) (TipJar, error)
 	GetUserBalanceInJar(ctx context.Context, arg GetUserBalanceInJarParams) (interface{}, error)
+	GetUserBalancesByUnitInJar(ctx context.Context, arg GetUserBalancesByUnitInJarParams) ([]GetUserBalancesByUnitInJarRow, error)
 	GetUserByGoogleID(ctx context.Context, googleID string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	IsUserJarAdmin(ctx context.Context, arg IsUserJarAdminParams) (bool, error)

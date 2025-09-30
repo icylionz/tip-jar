@@ -97,3 +97,33 @@ type MemberBalance struct {
 	TotalOwed      float64 `json:"total_owed"`
 	PendingCount   int     `json:"pending_count"`
 }
+
+type MemberBalanceByUnit struct {
+	UserID       int     `json:"user_id"`
+	Name         string  `json:"name"`
+	Avatar       *string `json:"avatar"`
+	Unit         string  `json:"unit"`
+	TotalOwed    float64 `json:"total_owed"`
+	OffenseCount int     `json:"offense_count"`
+}
+
+type MemberBalanceSummary struct {
+	UserID        int                    `json:"user_id"`
+	Name          string                 `json:"name"`
+	Avatar        *string                `json:"avatar"`
+	Balances      []MemberBalanceByUnit  `json:"balances"`
+	TotalOffenses int                    `json:"total_offenses"`
+}
+
+// For the pay offense functionality
+type OffenseDetail struct {
+	ID              int     `json:"id"`
+	OffenseTypeName string  `json:"offense_type_name"`
+	ReporterName    string  `json:"reporter_name"`
+	OffenderName    string  `json:"offender_name"`
+	Notes           *string `json:"notes"`
+	Amount          float64 `json:"amount"`
+	Unit            string  `json:"unit"`
+	Status          string  `json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+}

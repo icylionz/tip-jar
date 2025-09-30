@@ -211,6 +211,111 @@ func (s *TipJarService) GetJarActivity(ctx context.Context, jarID int, limit int
 
 	return activities, nil
 }
+
+func (s *TipJarService) GetMemberBalancesByUnit(ctx context.Context, jarID int) ([]models.MemberBalanceSummary, error) {
+	// For now, let's use a simpler approach that works with existing schema
+	// Get all jar members
+	members, err := s.db.ListJarMembers(ctx, int32(jarID))
+	if err != nil {
+		return nil, err
+	}
+
+	var summaries []models.MemberBalanceSummary
+
+	for _, member := range members {
+		// Get all pending offenses for this user in this jar
+		allOffenses, err := s.db.ListOffensesForJar(ctx, sqlc.ListOffensesForJarParams{
+			JarID:  int32(jarID),
+			Limit:  1000, // Get all
+			Offset: 0,
+		})
+		if err != nil {
+			continue
+		}
+
+		// Filter for this user's pending offenses
+		userOffenses := make([]sqlc.ListOffensesForJarRow, 0)
+		for _, offense := range allOffenses {
+			if offense.OffenderID == member.UserID && offense.Status == "pending" {
+				userOffenses = append(userOffenses, offense)
+			}
+		}
+
+		if len(userOffenses) == 0 {
+			continue // Skip users with no pending offenses
+		}
+
+		// Group by unit
+		unitBalances := make(map[string]*models.MemberBalanceByUnit)
+		totalOffenses := 0
+
+		for _, offense := range userOffenses {
+			totalOffenses++
+			
+			var unit string
+			if offense.CostUnit.Valid {
+				unit = offense.CostUnit.String
+			} else {
+				unit = "items"
+			}
+
+			var amount float64
+			if offense.CostOverride.Valid {
+				if val, err := offense.CostOverride.Float64Value(); err == nil && val.Valid {
+					amount = val.Float64
+				}
+			} else if offense.CostAmount.Valid {
+				if val, err := offense.CostAmount.Float64Value(); err == nil && val.Valid {
+					amount = val.Float64
+				}
+			}
+
+			if _, exists := unitBalances[unit]; !exists {
+				var avatar *string
+				if member.Avatar.Valid {
+					avatar = &member.Avatar.String
+				}
+
+				unitBalances[unit] = &models.MemberBalanceByUnit{
+					UserID:       int(member.UserID),
+					Name:         member.Name,
+					Avatar:       avatar,
+					Unit:         unit,
+					TotalOwed:    0,
+					OffenseCount: 0,
+				}
+			}
+
+			unitBalances[unit].TotalOwed += amount
+			unitBalances[unit].OffenseCount++
+		}
+
+		// Convert map to slice
+		balances := make([]models.MemberBalanceByUnit, 0, len(unitBalances))
+		for _, balance := range unitBalances {
+			balances = append(balances, *balance)
+		}
+
+		if len(balances) > 0 {
+			var avatar *string
+			if member.Avatar.Valid {
+				avatar = &member.Avatar.String
+			}
+
+			summaries = append(summaries, models.MemberBalanceSummary{
+				UserID:        int(member.UserID),
+				Name:          member.Name,
+				Avatar:        avatar,
+				Balances:      balances,
+				TotalOffenses: totalOffenses,
+			})
+		}
+	}
+
+	return summaries, nil
+}
+
+// Keep the old method for backward compatibility where simple totals are needed
 func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]models.MemberBalance, error) {
 	// Get all jar members
 	members, err := s.db.ListJarMembers(ctx, int32(jarID))
@@ -221,17 +326,15 @@ func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]mod
 	balances := make([]models.MemberBalance, len(members))
 
 	for i, member := range members {
-		// Get user's balance in this jar
+		// Get user's balance in this jar (only monetary for backward compatibility)
 		balance, err := s.db.GetUserBalanceInJar(ctx, sqlc.GetUserBalanceInJarParams{
 			JarID:      int32(jarID),
 			OffenderID: member.UserID,
 		})
 		if err != nil {
-			// If error, default to 0
 			balance = 0
 		}
 
-		// Convert balance to float64
 		var totalOwed float64
 		if balance != nil {
 			if balanceStr, ok := balance.(string); ok {
@@ -247,7 +350,6 @@ func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]mod
 		pendingOffenses, err := s.db.ListPendingOffensesForUser(ctx, member.UserID)
 		pendingCount := 0
 		if err == nil {
-			// Count only offenses for this jar
 			for _, offense := range pendingOffenses {
 				if offense.JarID == int32(jarID) {
 					pendingCount++
@@ -271,6 +373,7 @@ func (s *TipJarService) GetMemberBalances(ctx context.Context, jarID int) ([]mod
 
 	return balances, nil
 }
+
 func (s *TipJarService) CreateTipJarWithInviteCode(ctx context.Context, name, description, inviteCode string, createdBy int) (*models.TipJar, error) {
 	var descText pgtype.Text
 	if description != "" {
@@ -310,14 +413,11 @@ func (s *TipJarService) CreateTipJarWithInviteCode(ctx context.Context, name, de
 
 // createDefaultOffenseType creates a default "General Offense" type for a new jar
 func (s *TipJarService) createDefaultOffenseType(ctx context.Context, jarID int32) error {
-	var descText pgtype.Text
-	descText = pgtype.Text{String: "A general offense for any rule breaking", Valid: true}
+	descText := pgtype.Text{String: "A general offense for any rule breaking", Valid: true}
 
-	var costAmount pgtype.Numeric
-	costAmount = pgtype.Numeric{Int: big.NewInt(500), Exp: -2, Valid: true} // 5.00
+	costAmount := pgtype.Numeric{Int: big.NewInt(500), Exp: -2, Valid: true} // 5.00
 
-	var costUnit pgtype.Text
-	costUnit = pgtype.Text{String: "dollars", Valid: true}
+	costUnit := pgtype.Text{String: "dollars", Valid: true}
 
 	params := sqlc.CreateOffenseTypeParams{
 		JarID:       jarID,
