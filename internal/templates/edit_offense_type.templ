@@ -1,0 +1,169 @@
+package templates
+
+import "tipjar/internal/models"
+import "fmt"
+
+templ EditOffenseType(user *models.User, jar *models.TipJar, offenseType *models.OffenseType) {
+	@Base("Edit Offense Type", user) {
+		<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+			<!-- Header -->
+			<div class="mb-8">
+				<div class="flex items-center space-x-3 mb-2">
+					<a href={ templ.URL(fmt.Sprintf("/jars/%d/settings", jar.ID)) } class="text-gray-500 hover:text-gray-700">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+						</svg>
+					</a>
+					<h1 class="text-3xl font-bold text-gray-900">Edit Offense Type</h1>
+				</div>
+				<p class="text-gray-600">Update the details for this offense type.</p>
+			</div>
+
+			<!-- Edit Form -->
+			<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+				<form action={ templ.URL(fmt.Sprintf("/jars/%d/offense-types/%d", jar.ID, offenseType.ID)) } method="POST" class="space-y-6">
+					<div>
+						<label class="form-label">Offense Name</label>
+						<input type="text" 
+						       name="name"
+						       value={ offenseType.Name }
+						       placeholder="e.g., Late to Meeting"
+						       class="form-input"
+						       required/>
+					</div>
+
+					<div>
+						<label class="form-label">Description (Optional)</label>
+						<textarea name="description"
+						          rows="3"
+						          placeholder="Describe when this offense applies..."
+						          class="form-input">{ ptrToString(offenseType.Description) }</textarea>
+					</div>
+
+					<div>
+						<label class="form-label">Cost Type</label>
+						<select name="cost_type" 
+						        id="cost_type"
+						        class="form-input" 
+						        required
+						        onchange="updateCostFields()">
+							<option value="monetary" selected?={ offenseType.CostType == "monetary" }>Monetary</option>
+							<option value="action" selected?={ offenseType.CostType == "action" }>Action</option>
+							<option value="item" selected?={ offenseType.CostType == "item" }>Item</option>
+							<option value="service" selected?={ offenseType.CostType == "service" }>Service</option>
+						</select>
+					</div>
+
+					if offenseType.CostType == "monetary" {
+						<div id="monetary_field">
+							<label class="form-label">Amount</label>
+							<div class="relative">
+								<span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+								<input type="number" 
+								       name="cost_amount"
+								       value={ formatCostAmount(offenseType.CostAmount) }
+								       step="0.01"
+								       min="0"
+								       placeholder="5.00"
+								       class="form-input pl-8"/>
+							</div>
+						</div>
+					} else {
+						<div id="monetary_field" style="display: none;">
+							<label class="form-label">Amount</label>
+							<div class="relative">
+								<span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+								<input type="number" 
+								       name="cost_amount"
+								       value={ formatCostAmount(offenseType.CostAmount) }
+								       step="0.01"
+								       min="0"
+								       placeholder="5.00"
+								       class="form-input pl-8"/>
+							</div>
+						</div>
+					}
+
+					if offenseType.CostType != "monetary" {
+						<div id="action_field">
+							<label class="form-label" id="action_label">
+								if offenseType.CostType == "action" {
+									Action Required
+								} else if offenseType.CostType == "item" {
+									Item Required
+								} else if offenseType.CostType == "service" {
+									Service Required
+								} else {
+									Cost Action
+								}
+							</label>
+							<input type="text" 
+							       name="cost_action"
+							       value={ ptrToString(offenseType.CostAction) }
+							       placeholder="e.g., Buy coffee for everyone"
+							       class="form-input"/>
+						</div>
+					} else {
+						<div id="action_field" style="display: none;">
+							<label class="form-label" id="action_label">Cost Action</label>
+							<input type="text" 
+							       name="cost_action"
+							       value={ ptrToString(offenseType.CostAction) }
+							       placeholder="e.g., Buy coffee for everyone"
+							       class="form-input"/>
+						</div>
+					}
+
+					<div class="flex justify-end space-x-3 pt-4">
+						<a href={ templ.URL(fmt.Sprintf("/jars/%d/settings", jar.ID)) } class="btn btn-secondary">
+							Cancel
+						</a>
+						<button type="submit" class="btn btn-success">
+							Save Changes
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<script>
+			function updateCostFields() {
+				const costType = document.getElementById('cost_type').value;
+				const monetaryField = document.getElementById('monetary_field');
+				const actionField = document.getElementById('action_field');
+				const actionLabel = document.getElementById('action_label');
+				
+				if (costType === 'monetary') {
+					monetaryField.style.display = 'block';
+					actionField.style.display = 'none';
+				} else {
+					monetaryField.style.display = 'none';
+					actionField.style.display = 'block';
+					
+					// Update label based on cost type
+					if (costType === 'action') {
+						actionLabel.textContent = 'Action Required';
+					} else if (costType === 'item') {
+						actionLabel.textContent = 'Item Required';
+					} else if (costType === 'service') {
+						actionLabel.textContent = 'Service Required';
+					}
+				}
+			}
+		</script>
+	}
+}
+
+func ptrToString(ptr *string) string {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
+}
+
+func formatCostAmount(ptr *float64) string {
+	if ptr == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *ptr)
+}

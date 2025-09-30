@@ -118,21 +118,22 @@ templ JarSettings(user *models.User, jar *models.TipJar, members []models.JarMem
 									</div>
 									if isAdmin {
 										<div class="flex items-center space-x-2">
-											<button
-												@click={ fmt.Sprintf("editingOffenseType = %d; showOffenseTypeModal = true", offenseType.ID) }
+											<a
+												href={ templ.URL(fmt.Sprintf("/jars/%d/offense-types/%d/edit", jar.ID, offenseType.ID)) }
 												class="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+												title="Edit offense type"
 											>
 												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
 												</svg>
-											</button>
+											</a>
 											if offenseType.IsActive {
 												<form
 													action={ templ.URL(fmt.Sprintf("/jars/%d/offense-types/%d/deactivate", jar.ID, offenseType.ID)) }
 													method="POST"
 													onsubmit="return confirm('Are you sure you want to deactivate this offense type? It will no longer be available for new offenses.')"
 												>
-													<button type="submit" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors">
+													<button type="submit" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Deactivate offense type">
 														<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
 														</svg>
@@ -248,53 +249,61 @@ templ JarSettings(user *models.User, jar *models.TipJar, members []models.JarMem
 }
 
 templ OffenseTypeModal(jarID int) {
-	<div x-show="showOffenseTypeModal" 
-	     x-transition:enter="transition ease-out duration-200"
-	     x-transition:enter-start="opacity-0"
-	     x-transition:enter-end="opacity-100"
-	     x-transition:leave="transition ease-in duration-150"
-	     x-transition:leave-start="opacity-100"
-	     x-transition:leave-end="opacity-0"
-	     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-	     @click.self="showOffenseTypeModal = false"
-	     style="display: none;">
-		<div @click.stop 
-		     x-transition:enter="transition ease-out duration-200"
-		     x-transition:enter-start="opacity-0 transform scale-95"
-		     x-transition:enter-end="opacity-100 transform scale-100"
-		     x-transition:leave="transition ease-in duration-150"
-		     x-transition:leave-start="opacity-100 transform scale-100"
-		     x-transition:leave-end="opacity-0 transform scale-95"
-		     class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="p-6" 
-			     x-data={ fmt.Sprintf("offenseTypeFormData(%d)", jarID) }>
+	<div
+		x-show="showOffenseTypeModal"
+		x-transition:enter="transition ease-out duration-200"
+		x-transition:enter-start="opacity-0"
+		x-transition:enter-end="opacity-100"
+		x-transition:leave="transition ease-in duration-150"
+		x-transition:leave-start="opacity-100"
+		x-transition:leave-end="opacity-0"
+		class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+		@click.self="showOffenseTypeModal = false"
+		style="display: none;"
+	>
+		<div
+			@click.stop
+			x-transition:enter="transition ease-out duration-200"
+			x-transition:enter-start="opacity-0 transform scale-95"
+			x-transition:enter-end="opacity-100 transform scale-100"
+			x-transition:leave="transition ease-in duration-150"
+			x-transition:leave-start="opacity-100 transform scale-100"
+			x-transition:leave-end="opacity-0 transform scale-95"
+			class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+		>
+			<div
+				class="p-6"
+				x-data={ fmt.Sprintf("offenseTypeFormData(%d)", jarID) }
+				x-init="$watch('$parent.editingOffenseType', value => loadOffenseTypeData(value))"
+			>
 				<div class="flex items-center justify-between mb-6">
 					<h3 class="text-xl font-semibold text-gray-900" x-text="editingOffenseType ? 'Edit Offense Type' : 'New Offense Type'"></h3>
-					<button @click="showOffenseTypeModal = false" class="text-gray-400 hover:text-gray-600">
+					<button @click="showOffenseTypeModal = false; $parent.editingOffenseType = null" class="text-gray-400 hover:text-gray-600">
 						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
 						</svg>
 					</button>
 				</div>
-
 				<form @submit.prevent="submitForm" class="space-y-6">
 					<div>
 						<label class="form-label">Offense Name</label>
-						<input type="text" 
-						       x-model="form.name"
-						       placeholder="e.g., Late to Meeting"
-						       class="form-input"
-						       required>
+						<input
+							type="text"
+							x-model="form.name"
+							placeholder="e.g., Late to Meeting"
+							class="form-input"
+							required
+						/>
 					</div>
-
 					<div>
 						<label class="form-label">Description (Optional)</label>
-						<textarea x-model="form.description"
-						          rows="3"
-						          placeholder="Describe when this offense applies..."
-						          class="form-input"></textarea>
+						<textarea
+							x-model="form.description"
+							rows="3"
+							placeholder="Describe when this offense applies..."
+							class="form-input"
+						></textarea>
 					</div>
-
 					<div>
 						<label class="form-label">Cost Type</label>
 						<select x-model="form.cost_type" @change="updateCostType" class="form-input" required>
@@ -304,32 +313,33 @@ templ OffenseTypeModal(jarID int) {
 							<option value="service">Service</option>
 						</select>
 					</div>
-
 					<div x-show="form.cost_type === 'monetary'">
 						<label class="form-label">Amount</label>
 						<div class="relative">
 							<span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-							<input type="number" 
-							       x-model="form.cost_amount"
-							       step="0.01"
-							       min="0"
-							       placeholder="5.00"
-							       class="form-input pl-8">
+							<input
+								type="number"
+								x-model="form.cost_amount"
+								step="0.01"
+								min="0"
+								placeholder="5.00"
+								class="form-input pl-8"
+							/>
 						</div>
 					</div>
-
 					<div x-show="form.cost_type !== 'monetary'">
 						<label class="form-label">
 							<span x-show="form.cost_type === 'action'">Action Required</span>
 							<span x-show="form.cost_type === 'item'">Item Required</span>
 							<span x-show="form.cost_type === 'service'">Service Required</span>
 						</label>
-						<input type="text" 
-						       x-model="form.cost_action"
-						       placeholder="e.g., Buy coffee for everyone"
-						       class="form-input">
+						<input
+							type="text"
+							x-model="form.cost_action"
+							placeholder="e.g., Buy coffee for everyone"
+							class="form-input"
+						/>
 					</div>
-
 					<div x-show="error" class="bg-red-50 border border-red-200 rounded-xl p-4">
 						<div class="flex items-center">
 							<svg class="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,9 +348,8 @@ templ OffenseTypeModal(jarID int) {
 							<p class="text-red-800 text-sm" x-text="error"></p>
 						</div>
 					</div>
-
 					<div class="flex justify-end space-x-3 pt-4">
-						<button type="button" @click="showOffenseTypeModal = false" class="btn btn-secondary">
+						<button type="button" @click="showOffenseTypeModal = false; $parent.editingOffenseType = null" class="btn btn-secondary">
 							Cancel
 						</button>
 						<button type="submit" :disabled="loading" class="btn btn-success">
