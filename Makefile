@@ -2,6 +2,7 @@
 
 # Build the application
 build:
+	go mod tidy
 	go build -o bin/tipjar ./cmd/server
 
 # Run the application
@@ -32,7 +33,7 @@ migration-create:
 
 # Docker commands
 docker-build:
-	docker build -f docker/Dockerfile -t tipjar .
+	docker build -f Dockerfile -t tipjar .
 
 docker-run:
 	docker-compose up -d
@@ -66,6 +67,7 @@ setup: deps
 
 # Production build with optimizations
 build-prod:
+	go mod tidy
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/tipjar ./cmd/server
 
 # Generate all code

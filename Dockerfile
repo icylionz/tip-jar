@@ -4,7 +4,7 @@ FROM golang:1.25.1-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apk add --no-cache git
+RUN apk add --no-cache git make
 
 # Copy go mod files
 COPY go.mod ./
@@ -13,8 +13,7 @@ COPY go.mod ./
 COPY . .
 
 # Build the application
-RUN go mod tidy
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
+make deps generate build-prod
 
 # Final stage
 FROM alpine:latest
