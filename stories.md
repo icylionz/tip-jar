@@ -12,8 +12,8 @@
 - [x] **As a** user, **I want to** see a list of all tip jars I'm a member of, **so that** I can switch between different groups
 - [x] **As a** user, **I want to** report an offense committed by another member, **so that** it's tracked in the ledger
 - [ ] **As an** offender, **I want to** mark a monetary offense as paid, **so that** my debt is cleared
-- [ ] **As a** user, **I want to** see all pending offenses in a tip jar, **so that** I know what's currently owed
-- [ ] **As a** user, **I want to** see each member's current balance in the jar, **so that** I know who owes what
+- [x] **As a** user, **I want to** see all pending offenses in a tip jar, **so that** I know what's currently owed
+- [x] **As a** user, **I want to** see each member's current balance in the jar, **so that** I know who owes what
 
 ## Iteration 2: Custom Offenses - "Make It Personalized"
 
