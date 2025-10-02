@@ -69,6 +69,7 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	protected.POST("/jars/:id/settings", h.handleUpdateJarSettings)
 	protected.POST("/jars/:id/offense-types", h.handleCreateOffenseType)
 	protected.POST("/jars/:id/offense-types/:offense_type_id/deactivate", h.handleDeactivateOffenseType)
+	protected.POST("/jars/:id/offense-types/:offense_type_id/reactivate", h.handleReactivateOffenseType)
 	protected.GET("/jars/:id/offense-types/:offense_type_id/edit", h.handleEditOffenseTypeForm)
 	protected.POST("/jars/:id/offense-types/:offense_type_id", h.handleUpdateOffenseType)
 
@@ -868,6 +869,13 @@ func (h *Handlers) handleUpdateJarSettings(c echo.Context) error {
 
 
 func (h *Handlers) handleDeactivateOffenseType(c echo.Context) error {
+	return h.handleSetOffenseTypeActiveStatus(c, false)
+}
+func (h *Handlers) handleReactivateOffenseType(c echo.Context) error {
+	return h.handleSetOffenseTypeActiveStatus(c, true)
+}
+
+func (h *Handlers) handleSetOffenseTypeActiveStatus(c echo.Context, isActive bool) error {
 	user := h.getCurrentUser(c)
 
 	// Parse IDs
@@ -886,7 +894,11 @@ func (h *Handlers) handleDeactivateOffenseType(c echo.Context) error {
 	// Check if user is admin
 	isAdmin, err := h.tipJarService.IsUserJarAdmin(c.Request().Context(), jarID, user.ID)
 	if err != nil || !isAdmin {
-		return echo.NewHTTPError(http.StatusForbidden, "Only admins can deactivate offense types")
+		action := "deactivate"
+		if isActive {
+			action = "reactivate"
+		}
+		return echo.NewHTTPError(http.StatusForbidden, fmt.Sprintf("Only admins can %s offense types", action))
 	}
 
 	// Verify the offense type belongs to this jar
@@ -900,14 +912,19 @@ func (h *Handlers) handleDeactivateOffenseType(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Offense type not found")
 	}
 
-	err = h.offenseService.DeactivateOffenseType(c.Request().Context(), offenseTypeID)
+	err = h.offenseService.SetOffenseTypeActiveStatus(c.Request().Context(), offenseTypeID, isActive)
 	if err != nil {
-		c.Logger().Error("Failed to deactivate offense type", "error", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to deactivate offense type")
+		action := "deactivate"
+		if isActive {
+			action = "reactivate"
+		}
+		c.Logger().Error(fmt.Sprintf("Failed to %s offense type", action), "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to %s offense type", action))
 	}
 
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/jars/%d/settings", jarID))
 }
+
 func (h *Handlers) handleEditOffenseTypeForm(c echo.Context) error {
 	user := h.getCurrentUser(c)
 

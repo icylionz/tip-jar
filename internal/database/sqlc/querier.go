@@ -15,7 +15,6 @@ type Querier interface {
 	CreatePayment(ctx context.Context, arg CreatePaymentParams) (Payment, error)
 	CreateTipJar(ctx context.Context, arg CreateTipJarParams) (TipJar, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeactivateOffenseType(ctx context.Context, id int32) (DeactivateOffenseTypeRow, error)
 	DeleteJarMembership(ctx context.Context, arg DeleteJarMembershipParams) error
 	DeleteTipJar(ctx context.Context, id int32) error
 	GetJarBalancesByUnit(ctx context.Context, jarID int32) ([]GetJarBalancesByUnitRow, error)
@@ -41,6 +40,7 @@ type Querier interface {
 	ListTipJarsForUser(ctx context.Context, userID int32) ([]TipJar, error)
 	ListTipJarsForUserWithMemberCount(ctx context.Context, userID int32) ([]ListTipJarsForUserWithMemberCountRow, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	SetOffenseTypeActiveStatus(ctx context.Context, arg SetOffenseTypeActiveStatusParams) (SetOffenseTypeActiveStatusRow, error)
 	UpdateMemberRole(ctx context.Context, arg UpdateMemberRoleParams) (JarMembership, error)
 	UpdateOffenseStatus(ctx context.Context, arg UpdateOffenseStatusParams) (Offense, error)
 	UpdateOffenseType(ctx context.Context, arg UpdateOffenseTypeParams) (UpdateOffenseTypeRow, error)

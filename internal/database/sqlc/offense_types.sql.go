@@ -60,42 +60,6 @@ func (q *Queries) CreateOffenseType(ctx context.Context, arg CreateOffenseTypePa
 	return i, err
 }
 
-const deactivateOffenseType = `-- name: DeactivateOffenseType :one
-UPDATE offense_types
-SET is_active = false, updated_at = NOW()
-WHERE id = $1
-RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
-`
-
-type DeactivateOffenseTypeRow struct {
-	ID          int32            `db:"id" json:"id"`
-	JarID       int32            `db:"jar_id" json:"jar_id"`
-	Name        string           `db:"name" json:"name"`
-	Description pgtype.Text      `db:"description" json:"description"`
-	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
-	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
-	IsActive    bool             `db:"is_active" json:"is_active"`
-	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
-}
-
-func (q *Queries) DeactivateOffenseType(ctx context.Context, id int32) (DeactivateOffenseTypeRow, error) {
-	row := q.db.QueryRow(ctx, deactivateOffenseType, id)
-	var i DeactivateOffenseTypeRow
-	err := row.Scan(
-		&i.ID,
-		&i.JarID,
-		&i.Name,
-		&i.Description,
-		&i.CostAmount,
-		&i.CostUnit,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getOffenseType = `-- name: GetOffenseType :one
 SELECT id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
 FROM offense_types
@@ -227,6 +191,47 @@ func (q *Queries) ListOffenseTypesForJar(ctx context.Context, jarID int32) ([]Li
 		return nil, err
 	}
 	return items, nil
+}
+
+const setOffenseTypeActiveStatus = `-- name: SetOffenseTypeActiveStatus :one
+UPDATE offense_types
+SET is_active = $2, updated_at = NOW()
+WHERE id = $1
+RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at
+`
+
+type SetOffenseTypeActiveStatusParams struct {
+	ID       int32 `db:"id" json:"id"`
+	IsActive bool  `db:"is_active" json:"is_active"`
+}
+
+type SetOffenseTypeActiveStatusRow struct {
+	ID          int32            `db:"id" json:"id"`
+	JarID       int32            `db:"jar_id" json:"jar_id"`
+	Name        string           `db:"name" json:"name"`
+	Description pgtype.Text      `db:"description" json:"description"`
+	CostAmount  pgtype.Numeric   `db:"cost_amount" json:"cost_amount"`
+	CostUnit    pgtype.Text      `db:"cost_unit" json:"cost_unit"`
+	IsActive    bool             `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) SetOffenseTypeActiveStatus(ctx context.Context, arg SetOffenseTypeActiveStatusParams) (SetOffenseTypeActiveStatusRow, error) {
+	row := q.db.QueryRow(ctx, setOffenseTypeActiveStatus, arg.ID, arg.IsActive)
+	var i SetOffenseTypeActiveStatusRow
+	err := row.Scan(
+		&i.ID,
+		&i.JarID,
+		&i.Name,
+		&i.Description,
+		&i.CostAmount,
+		&i.CostUnit,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateOffenseType = `-- name: UpdateOffenseType :one

@@ -77,15 +77,30 @@ templ JarSettings(user *models.User, jar *models.TipJar, members []models.JarMem
 						</div>
 						<div class="space-y-3">
 							for _, offenseType := range offenseTypes {
-								<div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+								<div
+									class={ templ.KV("flex items-center justify-between p-4 border border-gray-200 rounded-xl transition-colors hover:bg-gray-50", offenseType.IsActive),
+                 templ.KV("flex items-center justify-between p-4 border border-gray-200 rounded-xl transition-colors bg-gray-100 opacity-60", !offenseType.IsActive) }
+								>
 									<div class="flex items-center space-x-4">
-										<div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-											<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<div
+											class={ templ.KV("w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0", offenseType.IsActive),
+                         templ.KV("w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0", !offenseType.IsActive) }
+										>
+											<svg
+												class={ templ.KV("w-5 h-5 text-gray-600", offenseType.IsActive),
+                             templ.KV("w-5 h-5 text-gray-400", !offenseType.IsActive) }
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 											</svg>
 										</div>
 										<div>
-											<h3 class="font-medium text-gray-900">{ offenseType.Name }</h3>
+											<h3
+												class={ templ.KV("font-medium text-gray-900", offenseType.IsActive),
+                            templ.KV("font-medium text-gray-500", !offenseType.IsActive) }
+											>{ offenseType.Name }</h3>
 											if offenseType.Description != nil {
 												<p class="text-sm text-gray-500">{ *offenseType.Description }</p>
 											}
@@ -124,9 +139,21 @@ templ JarSettings(user *models.User, jar *models.TipJar, members []models.JarMem
 													method="POST"
 													onsubmit="return confirm('Are you sure you want to deactivate this offense type?')"
 												>
-													<button type="submit" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors">
+													<button type="submit" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Deactivate offense type">
 														<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+														</svg>
+													</button>
+												</form>
+											} else {
+												<form
+													action={ templ.URL(fmt.Sprintf("/jars/%d/offense-types/%d/reactivate", jar.ID, offenseType.ID)) }
+													method="POST"
+													onsubmit="return confirm('Are you sure you want to reactivate this offense type?')"
+												>
+													<button type="submit" class="text-gray-400 hover:text-green-600 p-2 rounded-lg hover:bg-green-50 transition-colors" title="Reactivate offense type">
+														<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 														</svg>
 													</button>
 												</form>
@@ -238,6 +265,7 @@ templ JarSettings(user *models.User, jar *models.TipJar, members []models.JarMem
 		</div>
 	}
 }
+
 templ OffenseTypeModal(jarID int) {
 	<div
 		x-show="showOffenseTypeModal"

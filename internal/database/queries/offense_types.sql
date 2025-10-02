@@ -26,8 +26,8 @@ SET name = $2, description = $3, cost_amount = $4, cost_unit = $5, updated_at = 
 WHERE id = $1
 RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at;
 
--- name: DeactivateOffenseType :one
+-- name: SetOffenseTypeActiveStatus :one
 UPDATE offense_types
-SET is_active = false, updated_at = NOW()
+SET is_active = $2, updated_at = NOW()
 WHERE id = $1
 RETURNING id, jar_id, name, description, cost_amount, cost_unit, is_active, created_at, updated_at;

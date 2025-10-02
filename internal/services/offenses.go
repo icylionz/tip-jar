@@ -200,8 +200,11 @@ func (s *OffenseService) UpdateOffenseType(ctx context.Context, offenseTypeID in
 	return &model, nil
 }
 
-func (s *OffenseService) DeactivateOffenseType(ctx context.Context, offenseTypeID int) error {
-	_, err := s.db.DeactivateOffenseType(ctx, int32(offenseTypeID))
+func (s *OffenseService) SetOffenseTypeActiveStatus(ctx context.Context, offenseTypeID int, isActive bool) error {
+	_, err := s.db.SetOffenseTypeActiveStatus(ctx, sqlc.SetOffenseTypeActiveStatusParams{
+		ID:       int32(offenseTypeID),
+		IsActive: isActive,
+	})
 	return err
 }
 
