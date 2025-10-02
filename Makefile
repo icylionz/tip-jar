@@ -56,6 +56,12 @@ deps:
 	go install github.com/a-h/templ/cmd/templ@latest
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
+# Install production build dependencies
+deps-prod:
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/a-h/templ/cmd/templ@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
 # Setup development environment
 setup: deps
 	cp .env.example .env

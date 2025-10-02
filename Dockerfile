@@ -13,7 +13,7 @@ COPY go.mod ./
 COPY . .
 
 # Build the application
-make deps generate build-prod
+RUN make deps-prod generate build-prod
 
 # Final stage
 FROM alpine:latest
@@ -24,7 +24,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder /app/main .
+COPY --from=builder ./app/bin/tipjar /app/main
 
 # Create uploads directory
 RUN mkdir -p uploads
