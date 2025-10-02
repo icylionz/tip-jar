@@ -11,7 +11,7 @@
 - [x] **As a** jar admin, **I want to** generate and share an invite code, **so that** others can join my tip jar
 - [x] **As a** user, **I want to** see a list of all tip jars I'm a member of, **so that** I can switch between different groups
 - [x] **As a** user, **I want to** report an offense committed by another member, **so that** it's tracked in the ledger
-- [ ] **As an** offender, **I want to** mark a monetary offense as paid, **so that** my debt is cleared
+- [x] **As an** offender, **I want to** mark a monetary offense as paid, **so that** my debt is cleared
 - [x] **As a** user, **I want to** see all pending offenses in a tip jar, **so that** I know what's currently owed
 - [x] **As a** user, **I want to** see each member's current balance in the jar, **so that** I know who owes what
 
@@ -32,8 +32,8 @@
 
 ### Goal: Add proof and verification for payments, especially non-monetary ones
 
-- [ ] **As an** offender, **I want to** upload proof of completing an action-based penalty, **so that** others can verify
-- [ ] **As a** user, **I want to** attach receipts/photos to payments, **so that** there's proof of settlement
+- [x] **As an** offender, **I want to** upload proof of completing an action-based penalty, **so that** others can verify
+- [x] **As a** user, **I want to** attach receipts/photos to payments, **so that** there's proof of settlement
 - [ ] **As a** witness, **I want to** verify someone's action-based payment, **so that** settlements are legitimate
 - [ ] **As a** user, **I want to** see which specific offenses a payment covered, **so that** the ledger is transparent
 - [ ] **As an** offender, **I want to** batch pay multiple offenses at once, **so that** I can clear my debts efficiently

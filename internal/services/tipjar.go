@@ -181,6 +181,7 @@ func (s *TipJarService) GetJarMembers(ctx context.Context, jarID int) ([]models.
 
 	return result, nil
 }
+
 func (s *TipJarService) GetJarActivity(ctx context.Context, jarID int, limit int) ([]models.JarActivity, error) {
 	offenses, err := s.db.ListOffensesForJar(ctx, sqlc.ListOffensesForJarParams{
 		JarID:  int32(jarID),
@@ -201,7 +202,9 @@ func (s *TipJarService) GetJarActivity(ctx context.Context, jarID int, limit int
 		activities[i] = models.JarActivity{
 			ID:              int(offense.ID),
 			OffenseTypeName: offense.OffenseTypeName,
+			ReporterID:      int(offense.ReporterID), // Add this
 			ReporterName:    offense.ReporterName,
+			OffenderID:      int(offense.OffenderID), // Add this
 			OffenderName:    offense.OffenderName,
 			Notes:           notes,
 			Status:          offense.Status,

@@ -278,3 +278,154 @@ func (s *OffenseService) sqlcOffenseToModel(offense sqlc.Offense) *models.Offens
 		UpdatedAt:     offense.UpdatedAt.Time,
 	}
 }
+func (s *OffenseService) GetOffenseDetail(ctx context.Context, offenseID int) (*models.OffenseDetail, error) {
+	
+	offense, err := s.db.GetOffense(ctx, int32(offenseID))
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	offenseType, err := s.db.GetOffenseType(ctx, offense.OffenseTypeID)
+	if err != nil {
+		return nil, err
+	}
+
+	offender, err := s.db.GetUserByID(ctx, offense.OffenderID)
+	if err != nil {
+		return nil, err
+	}
+
+	reporter, err := s.db.GetUserByID(ctx, offense.ReporterID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate amount and unit
+	var amount float64
+	var unit string
+
+	if offense.CostOverride.Valid {
+		floatVal, _ := offense.CostOverride.Float64Value()
+		if floatVal.Valid {
+			amount = floatVal.Float64
+		}
+	} else if offenseType.CostAmount.Valid {
+		floatVal, _ := offenseType.CostAmount.Float64Value()
+		if floatVal.Valid {
+			amount = floatVal.Float64
+		}
+	}
+
+	if offenseType.CostUnit.Valid {
+		unit = offenseType.CostUnit.String
+	} else {
+		unit = "items"
+	}
+
+	var notes *string
+	if offense.Notes.Valid {
+		notes = &offense.Notes.String
+	}
+
+	return &models.OffenseDetail{
+		ID:              int(offense.ID),
+		JarID:           int(offense.JarID),
+		OffenseTypeName: offenseType.Name,
+		ReporterID:      int(offense.ReporterID),
+		ReporterName:    reporter.Name,
+		OffenderID:      int(offense.OffenderID),
+		OffenderName:    offender.Name,
+		Notes:           notes,
+		Amount:          amount,
+		Unit:            unit,
+		Status:          offense.Status,
+		CreatedAt:       offense.CreatedAt.Time,
+	}, nil
+}
+
+func (s *OffenseService) CreatePayment(ctx context.Context, offenseID, userID int, amount *float64, proofURL *string, notes string) (*models.Payment, error) {
+	var amountNumeric pgtype.Numeric
+	if amount != nil {
+		cents := int64(*amount * 100)
+		amountNumeric = pgtype.Numeric{
+			Int:   big.NewInt(cents),
+			Exp:   -2,
+			Valid: true,
+		}
+	}
+
+	var proofURLText pgtype.Text
+	if proofURL != nil && *proofURL != "" {
+		proofURLText = pgtype.Text{String: *proofURL, Valid: true}
+	}
+
+	var proofType pgtype.Text
+	if proofURL != nil {
+		proofType = pgtype.Text{String: "image", Valid: true}
+	}
+
+	params := sqlc.CreatePaymentParams{
+		OffenseID: int32(offenseID),
+		UserID:    int32(userID),
+		Amount:    amountNumeric,
+		ProofType: proofType,
+		ProofUrl:  proofURLText,
+	}
+
+	payment, err := s.db.CreatePayment(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.sqlcPaymentToModel(payment), nil
+}
+
+func (s *OffenseService) UpdateOffenseStatus(ctx context.Context, offenseID int, status string) error {
+	_, err := s.db.UpdateOffenseStatus(ctx, sqlc.UpdateOffenseStatusParams{
+		ID:     int32(offenseID),
+		Status: status,
+	})
+	return err
+}
+
+func (s *OffenseService) sqlcPaymentToModel(payment sqlc.Payment) *models.Payment {
+	var amount *float64
+	if payment.Amount.Valid {
+		floatVal, _ := payment.Amount.Float64Value()
+		if floatVal.Valid {
+			amount = &floatVal.Float64
+		}
+	}
+
+	var proofType *string
+	if payment.ProofType.Valid {
+		proofType = &payment.ProofType.String
+	}
+
+	var proofURL *string
+	if payment.ProofUrl.Valid {
+		proofURL = &payment.ProofUrl.String
+	}
+
+	var verifiedBy *int
+	if payment.VerifiedBy.Valid {
+		verifiedByInt := int(payment.VerifiedBy.Int32)
+		verifiedBy = &verifiedByInt
+	}
+
+	return &models.Payment{
+		ID:         int(payment.ID),
+		OffenseID:  int(payment.OffenseID),
+		UserID:     int(payment.UserID),
+		Amount:     amount,
+		ProofType:  proofType,
+		ProofURL:   proofURL,
+		Verified:   payment.Verified,
+		VerifiedBy: verifiedBy,
+		CreatedAt:  payment.CreatedAt.Time,
+		UpdatedAt:  payment.UpdatedAt.Time,
+	}
+}

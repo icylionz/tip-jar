@@ -72,6 +72,8 @@ func (h *Handlers) RegisterRoutes(e *echo.Echo) {
 	protected.POST("/jars/:id/offense-types/:offense_type_id/reactivate", h.handleReactivateOffenseType)
 	protected.GET("/jars/:id/offense-types/:offense_type_id/edit", h.handleEditOffenseTypeForm)
 	protected.POST("/jars/:id/offense-types/:offense_type_id", h.handleUpdateOffenseType)
+	protected.GET("/offenses/:id/pay", h.handlePayOffense)
+	protected.POST("/offenses/:id/pay", h.handlePayOffense)
 
 	// API routes
 	api := e.Group("/api/v1")
@@ -722,10 +724,6 @@ func (h *Handlers) handleReportOffense(c echo.Context) error {
 	})
 }
 
-func (h *Handlers) handlePayOffense(c echo.Context) error {
-	return c.String(http.StatusOK, "Pay offense - not implemented yet")
-}
-
 func (h *Handlers) handleGetUser(c echo.Context) error {
 	user := h.getCurrentUser(c)
 	return c.JSON(http.StatusOK, user)
@@ -970,4 +968,134 @@ func (h *Handlers) handleEditOffenseTypeForm(c echo.Context) error {
 	}
 
 	return h.renderTemplate(c, templates.EditOffenseType(user, jar, offenseType))
+}
+
+func (h *Handlers) handlePayOffense(c echo.Context) error {
+	user := h.getCurrentUser(c)
+
+	// Parse offense ID
+	offenseIDStr := c.Param("id")
+	offenseID, err := strconv.Atoi(offenseIDStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid offense ID")
+	}
+
+	// For GET request, show the form
+	if c.Request().Method == http.MethodGet {
+		// Get offense details
+		offenseDetail, err := h.offenseService.GetOffenseDetail(c.Request().Context(), offenseID)
+		if err != nil {
+			c.Logger().Error("Failed to get offense detail", "error", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load offense")
+		}
+
+		if offenseDetail == nil {
+			return echo.NewHTTPError(http.StatusNotFound, "Offense not found")
+		}
+
+		// Get jar to verify user is a member
+		jar, err := h.tipJarService.GetTipJar(c.Request().Context(), offenseDetail.JarID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load jar")
+		}
+
+		// Verify user is either the offender or a jar admin
+		isOffender := offenseDetail.OffenderID == user.ID
+		isAdmin, _ := h.tipJarService.IsUserJarAdmin(c.Request().Context(), offenseDetail.JarID, user.ID)
+
+		if !isOffender && !isAdmin {
+			return echo.NewHTTPError(http.StatusForbidden, "Only the offender or jar admins can mark this offense as paid")
+		}
+
+		return h.renderTemplate(c, templates.PayOffense(user, jar, offenseDetail))
+	}
+
+	// For POST request, process the payment
+	return h.handleSubmitPayment(c, offenseID)
+}
+func (h *Handlers) handleSubmitPayment(c echo.Context, offenseID int) error {
+	user := h.getCurrentUser(c)
+
+	// Get offense details to verify
+	offenseDetail, err := h.offenseService.GetOffenseDetail(c.Request().Context(), offenseID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to load offense")
+	}
+
+	if offenseDetail == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Offense not found")
+	}
+
+	// Verify user is either the offender or a jar admin
+	isOffender := offenseDetail.OffenderID == user.ID
+	isAdmin, _ := h.tipJarService.IsUserJarAdmin(c.Request().Context(), offenseDetail.JarID, user.ID)
+
+	if !isOffender && !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Only the offender or jar admins can mark this offense as paid")
+	}
+
+	// Verify offense is still pending
+	if offenseDetail.Status != "pending" {
+		return echo.NewHTTPError(http.StatusBadRequest, "This offense has already been settled")
+	}
+
+	// Parse form data - just notes now
+	notes := strings.TrimSpace(c.FormValue("notes"))
+
+	// Add note if marked as paid by admin (not the offender)
+	if isAdmin && !isOffender {
+		adminNote := fmt.Sprintf("[Marked as paid by admin: %s]", user.Name)
+		if notes != "" {
+			notes = adminNote + "\n\n" + notes
+		} else {
+			notes = adminNote
+		}
+	}
+
+	// Handle file upload if provided
+	var proofURL *string
+	file, err := c.FormFile("proof_file")
+	if err == nil && file != nil {
+		// TODO: Implement file upload handling
+		// For now, we'll skip this and just record the payment
+		c.Logger().Info("File upload received but not yet implemented", "filename", file.Filename)
+	}
+
+	// Create payment record - always with the full amount owed
+	// Use offender's ID as the payer
+	payment, err := h.offenseService.CreatePayment(
+		c.Request().Context(),
+		offenseID,
+		offenseDetail.OffenderID,
+		&offenseDetail.Amount, // Always the full amount
+		proofURL,
+		notes,
+	)
+	if err != nil {
+		c.Logger().Error("Failed to create payment", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to record payment")
+	}
+
+	// Update offense status to paid
+	err = h.offenseService.UpdateOffenseStatus(c.Request().Context(), offenseID, "paid")
+	if err != nil {
+		c.Logger().Error("Failed to update offense status", "error", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to mark offense as paid")
+	}
+
+	c.Logger().Info("Payment recorded successfully",
+		"payment_id", payment.ID,
+		"offense_id", offenseID,
+		"offender_id", offenseDetail.OffenderID,
+		"amount", offenseDetail.Amount,
+		"unit", offenseDetail.Unit,
+		"marked_by_user_id", user.ID,
+		"is_admin", isAdmin)
+
+	// Redirect back to jar view
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success":    true,
+		"payment_id": payment.ID,
+		"redirect":   fmt.Sprintf("/jars/%d", offenseDetail.JarID),
+	})
 }

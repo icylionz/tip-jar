@@ -1,7 +1,10 @@
 package templates
 
-import "tipjar/internal/models"
-import "fmt"
+import (
+	"fmt"
+	"time"
+	"tipjar/internal/models"
+)
 
 templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberInfo, activities []models.JarActivity, balances []models.MemberBalanceSummary, isAdmin bool) {
 	@Base(jar.Name, user) {
@@ -53,29 +56,33 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 					</div>
 				</div>
 			</div>
-
 			<!-- Tab Navigation -->
 			<div class="mb-6" x-data="{ activeTab: 'activity' }">
 				<div class="border-b border-gray-200">
 					<nav class="-mb-px flex space-x-8">
-						<button @click="activeTab = 'activity'" 
-						        :class="activeTab === 'activity' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-						        class="py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+						<button
+							@click="activeTab = 'activity'"
+							:class="activeTab === 'activity' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+							class="py-2 px-1 border-b-2 font-medium text-sm transition-colors"
+						>
 							Activity
 						</button>
-						<button @click="activeTab = 'members'" 
-						        :class="activeTab === 'members' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-						        class="py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+						<button
+							@click="activeTab = 'members'"
+							:class="activeTab === 'members' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+							class="py-2 px-1 border-b-2 font-medium text-sm transition-colors"
+						>
 							Members
 						</button>
-						<button @click="activeTab = 'balances'" 
-						        :class="activeTab === 'balances' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-						        class="py-2 px-1 border-b-2 font-medium text-sm transition-colors">
+						<button
+							@click="activeTab = 'balances'"
+							:class="activeTab === 'balances' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+							class="py-2 px-1 border-b-2 font-medium text-sm transition-colors"
+						>
 							Balances
 						</button>
 					</nav>
 				</div>
-
 				<!-- Tab Content -->
 				<div class="mt-6">
 					<!-- Activity Tab -->
@@ -88,7 +95,7 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 									for _, member := range members {
 										<div class="flex items-center space-x-3">
 											if member.Avatar != "" {
-												<img src={ member.Avatar } alt="Avatar" class="w-8 h-8 rounded-full">
+												<img src={ member.Avatar } alt="Avatar" class="w-8 h-8 rounded-full"/>
 											} else {
 												<div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
 													<span class="text-white font-medium text-sm">
@@ -109,12 +116,10 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 								</div>
 							</div>
 						</div>
-
 						<!-- Activity Feed -->
 						<div class="lg:col-span-3">
 							<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
 								<h3 class="text-lg font-semibold text-gray-900 mb-6">Activity Feed</h3>
-								
 								<!-- Recent Activity Section -->
 								<div class="mb-8">
 									<h4 class="text-md font-medium text-gray-900 mb-4">Recent Activity</h4>
@@ -135,10 +140,24 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 														if activity.Notes != nil {
 															<p class="text-sm text-gray-500">Notes: { *activity.Notes }</p>
 														}
-														<p class="text-xs text-gray-400" 
-														   data-timestamp="{ activity.CreatedAt.Format(time.RFC3339) }">
+														<p
+															class="text-xs text-gray-400"
+															data-timestamp={ activity.CreatedAt.Format(time.RFC3339) }
+														>
 															{ activity.CreatedAt.Format("Jan 2, 3:04 PM") }
 														</p>
+														// Add Pay button for pending offenses that belong to current user
+														if activity.Status == "pending" && (activity.OffenderID == user.ID || isAdmin) {
+															<a
+																href={ templ.URL(fmt.Sprintf("/offenses/%d/pay", activity.ID)) }
+																class="inline-flex items-center mt-2 px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors"
+															>
+																<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																	<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+																</svg>
+																Mark as Paid
+															</a>
+														}
 													</div>
 													<div>
 														if activity.Status == "pending" {
@@ -163,7 +182,6 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 										</div>
 									}
 								</div>
-
 								<!-- Current Balances Section -->
 								<div>
 									<h4 class="text-md font-medium text-gray-900 mb-4">Current Balances</h4>
@@ -173,7 +191,7 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 												<div class="bg-gray-50 rounded-xl p-4">
 													<div class="flex items-start space-x-3 mb-3">
 														if balanceSummary.Avatar != nil {
-															<img src={ *balanceSummary.Avatar } alt="Avatar" class="w-10 h-10 rounded-full">
+															<img src={ *balanceSummary.Avatar } alt="Avatar" class="w-10 h-10 rounded-full"/>
 														} else {
 															<div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center">
 																<span class="text-white font-medium">
@@ -220,7 +238,6 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 							</div>
 						</div>
 					</div>
-
 					<!-- Members Tab -->
 					<div x-show="activeTab === 'members'">
 						<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -235,7 +252,7 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 									<div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
 										<div class="flex items-center space-x-4">
 											if member.Avatar != "" {
-												<img src={ member.Avatar } alt="Avatar" class="w-12 h-12 rounded-full">
+												<img src={ member.Avatar } alt="Avatar" class="w-12 h-12 rounded-full"/>
 											} else {
 												<div class="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center">
 													<span class="text-white font-medium text-lg">
@@ -246,8 +263,10 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 											<div>
 												<p class="font-medium text-gray-900">{ member.Name }</p>
 												<p class="text-sm text-gray-500">{ member.Email }</p>
-												<p class="text-xs text-gray-400" 
-												   data-timestamp="{ member.JoinedAt.Format(time.RFC3339) }">
+												<p
+													class="text-xs text-gray-400"
+													data-timestamp="{ member.JoinedAt.Format(time.RFC3339) }"
+												>
 													Joined { member.JoinedAt.Format("Jan 2, 2006") }
 												</p>
 											</div>
@@ -271,7 +290,6 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 							</div>
 						</div>
 					</div>
-
 					<!-- Balances Tab -->
 					<div x-show="activeTab === 'balances'">
 						<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -281,7 +299,7 @@ templ ViewJar(user *models.User, jar *models.TipJar, members []models.JarMemberI
 									<div class="flex items-start justify-between p-4 border border-gray-200 rounded-xl">
 										<div class="flex items-start space-x-4">
 											if balanceSummary.Avatar != nil {
-												<img src={ *balanceSummary.Avatar } alt="Avatar" class="w-12 h-12 rounded-full">
+												<img src={ *balanceSummary.Avatar } alt="Avatar" class="w-12 h-12 rounded-full"/>
 											} else {
 												<div class="w-12 h-12 bg-gray-400 rounded-full flex items-center justify-center">
 													<span class="text-white font-medium text-lg">

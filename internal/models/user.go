@@ -85,8 +85,10 @@ type Payment struct {
 type JarActivity struct {
 	ID              int       `json:"id"`
 	OffenseTypeName string    `json:"offense_type_name"`
+	ReporterID      int       `json:"reporter_id"` 
 	ReporterName    string    `json:"reporter_name"`
 	ReporterAvatar  *string   `json:"reporter_avatar"`
+	OffenderID      int       `json:"offender_id"` 
 	OffenderName    string    `json:"offender_name"`
 	OffenderAvatar  *string   `json:"offender_avatar"`
 	Notes           *string   `json:"notes"`
@@ -119,15 +121,17 @@ type MemberBalanceSummary struct {
 	TotalOffenses int                    `json:"total_offenses"`
 }
 
-// For the pay offense functionality
 type OffenseDetail struct {
-	ID              int     `json:"id"`
-	OffenseTypeName string  `json:"offense_type_name"`
-	ReporterName    string  `json:"reporter_name"`
-	OffenderName    string  `json:"offender_name"`
-	Notes           *string `json:"notes"`
-	Amount          float64 `json:"amount"`
-	Unit            string  `json:"unit"`
-	Status          string  `json:"status"`
+	ID              int       `json:"id"`
+	JarID           int       `json:"jar_id"` // Add this line
+	OffenseTypeName string    `json:"offense_type_name"`
+	ReporterID      int       `json:"reporter_id"`
+	ReporterName    string    `json:"reporter_name"`
+	OffenderID      int       `json:"offender_id"`
+	OffenderName    string    `json:"offender_name"`
+	Notes           *string   `json:"notes"`
+	Amount          float64   `json:"amount"`
+	Unit            string    `json:"unit"`
+	Status          string    `json:"status"`
 	CreatedAt       time.Time `json:"created_at"`
 }

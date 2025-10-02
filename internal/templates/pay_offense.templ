@@ -3,18 +3,28 @@ package templates
 import "tipjar/internal/models"
 import "fmt"
 
+
 templ PayOffense(user *models.User, jar *models.TipJar, offense *models.OffenseDetail) {
 	@Base("Pay Offense", user) {
 		<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 			<div class="text-center mb-8">
 				<h1 class="text-3xl font-bold text-gray-900">Mark Offense as Paid</h1>
 				<p class="text-gray-600 mt-2">Settle the score and upload proof for full transparency.</p>
+				// Add indicator if admin is marking someone else's offense
+				if offense.OffenderID != user.ID {
+					<p class="text-sm text-blue-600 mt-2 font-medium">
+						You are marking this offense as paid on behalf of { offense.OffenderName }
+					</p>
+				}
 			</div>
 
 			<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8" x-data="payOffenseForm()">
 				<!-- Offense Details -->
 				<div class="bg-gray-50 rounded-xl p-4 mb-6">
 					<h3 class="font-semibold text-gray-900 mb-2">Offense Details</h3>
+					<p class="text-sm text-gray-600">
+						<span class="font-medium">Offender:</span> { offense.OffenderName }
+					</p>
 					<p class="text-sm text-gray-600">
 						<span class="font-medium">Type:</span> { offense.OffenseTypeName }
 					</p>
@@ -30,71 +40,20 @@ templ PayOffense(user *models.User, jar *models.TipJar, offense *models.OffenseD
 				</div>
 
 				<form @submit.prevent="submitForm" class="space-y-6">
-					if offense.Unit == "dollars" || offense.Unit == "USD" {
-						<!-- Monetary Payment -->
-						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label class="form-label">Amount Paid</label>
-								<div class="relative">
-									<span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-									<input type="number" 
-									       x-model="form.amount_paid"
-									       step="0.01" 
-									       min="0"
-									       value={ fmt.Sprintf("%.2f", offense.Amount) }
-									       class="form-input pl-8" 
-									       required/>
-								</div>
-							</div>
-							<div>
-								<label class="form-label">Payment Method</label>
-								<input type="text" 
-								       x-model="form.payment_method"
-								       placeholder="e.g., Venmo, Cash"
-								       class="form-input"/>
-							</div>
-						</div>
-
-						<div>
-							<label class="form-label">Date of Payment</label>
-							<input type="date" 
-							       x-model="form.payment_date"
-							       class="form-input"
-							       required/>
-						</div>
-					} else {
-						<!-- Non-Monetary Payment -->
-						<div>
-							<label class="form-label">Completion Details</label>
-							<textarea x-model="form.completion_notes"
-							          rows="3"
-							          placeholder={ fmt.Sprintf("Describe how you completed the %s...", offense.Unit) }
-							          class="form-input"
-							          required></textarea>
-						</div>
-
-						<div>
-							<label class="form-label">Date of Completion</label>
-							<input type="date" 
-							       x-model="form.completion_date"
-							       class="form-input"
-							       required/>
-						</div>
-					}
-
 					<!-- Notes -->
 					<div>
 						<label class="form-label">Notes (Optional)</label>
 						<textarea x-model="form.notes"
-						          rows="3"
+						          rows="4"
 						          placeholder="Any additional information about the payment..."
-						          class="form-input"></textarea>
+						          class="form-input resize-none"></textarea>
 					</div>
 
 					<!-- Proof Upload -->
 					<div>
 						<label class="form-label">Proof of Payment</label>
-						<div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+						<div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+						     @click="$refs.fileInput.click()">
 							<svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
 							</svg>
@@ -102,14 +61,35 @@ templ PayOffense(user *models.User, jar *models.TipJar, offense *models.OffenseD
 							<p class="text-gray-500 text-sm">or drag and drop</p>
 							<p class="text-gray-400 text-xs mt-1">PNG, JPG, GIF up to 10MB</p>
 							<input type="file" 
+							       x-ref="fileInput"
 							       @change="handleFileUpload"
 							       accept="image/*,.pdf"
 							       class="hidden"/>
+							<p x-show="form.proof_file" class="text-sm text-gray-600 mt-2 font-medium" x-text="form.proof_file?.name"></p>
+						</div>
+					</div>
+
+					<!-- Error Display -->
+					<div x-show="error" 
+					     x-transition:enter="transition ease-out duration-200"
+					     x-transition:enter-start="opacity-0"
+					     x-transition:enter-end="opacity-100"
+					     class="bg-red-50 border border-red-200 rounded-xl p-4"
+					     style="display: none;">
+						<div class="flex items-center">
+							<svg class="w-5 h-5 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+							</svg>
+							<p class="text-red-800 text-sm" x-text="error"></p>
 						</div>
 					</div>
 
 					<!-- Submit Button -->
-					<div class="flex justify-center">
+					<div class="flex justify-center space-x-4">
+						<a href={ templ.URL(fmt.Sprintf("/jars/%d", jar.ID)) } 
+						   class="btn btn-secondary px-8 py-3">
+							Cancel
+						</a>
 						<button type="submit" 
 						        :disabled="loading"
 						        class="btn btn-primary px-8 py-3 text-lg">
@@ -128,15 +108,11 @@ templ PayOffense(user *models.User, jar *models.TipJar, offense *models.OffenseD
 			function payOffenseForm() {
 				return {
 					form: {
-						amount_paid: '',
-						payment_method: '',
-						payment_date: new Date().toISOString().split('T')[0],
-						completion_notes: '',
-						completion_date: new Date().toISOString().split('T')[0],
 						notes: '',
 						proof_file: null
 					},
 					loading: false,
+					error: null,
 					
 					handleFileUpload(event) {
 						this.form.proof_file = event.target.files[0];
@@ -144,17 +120,17 @@ templ PayOffense(user *models.User, jar *models.TipJar, offense *models.OffenseD
 					
 					async submitForm() {
 						this.loading = true;
+						this.error = null;
 						
 						try {
 							const formData = new FormData();
 							
-							// Add all form fields
-							Object.keys(this.form).forEach(key => {
-								if (this.form[key] && key !== 'proof_file') {
-									formData.append(key, this.form[key]);
-								}
-							});
+							// Add notes if provided
+							if (this.form.notes) {
+								formData.append('notes', this.form.notes);
+							}
 							
+							// Add proof file if provided
 							if (this.form.proof_file) {
 								formData.append('proof_file', this.form.proof_file);
 							}
@@ -169,10 +145,10 @@ templ PayOffense(user *models.User, jar *models.TipJar, offense *models.OffenseD
 								window.location.href = data.redirect;
 							} else {
 								const errorText = await response.text();
-								this.$store.notifications.add(errorText || 'Failed to submit payment', 'error');
+								this.error = errorText || 'Failed to submit payment';
 							}
 						} catch (error) {
-							this.$store.notifications.add('Network error. Please try again.', 'error');
+							this.error = 'Network error. Please try again.';
 						} finally {
 							this.loading = false;
 						}
