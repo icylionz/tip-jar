@@ -24,8 +24,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder ./app/bin/tipjar /app/main
-
+COPY --from=builder /app/bin/tipjar main
 # Create uploads directory
 RUN mkdir -p uploads
 
